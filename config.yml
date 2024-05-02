@@ -1,0 +1,8 @@
+# ---------- postgres credentials ----------------- 
+database:
+  NAME: DB_NAME
+  USER: USERNAME
+  PASSWORD: PASSWORD
+  HOST: HOST_NAME
+  PORT: YOUR_PORT
+
