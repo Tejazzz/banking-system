@@ -24,7 +24,7 @@ def get_fields(form_meta):
         return list(form_meta.fields)
     return []
 
-# ------------------- Home Loan Forms ----------------------------
+# =============================== Home Loan Forms ============================================
 
 class AddressForm(forms.ModelForm):
     class Meta:
@@ -93,7 +93,7 @@ class HomeLoanForm(forms.ModelForm):
         except Exception as e:
             raise ValidationError({"general": "An error occurred: " + str(e)})
 
-# -------------------- Education Loan Forms ----------------------
+# =============================== Education Loan Forms ============================================
 
 class UniversityForm(forms.ModelForm):
     class Meta:

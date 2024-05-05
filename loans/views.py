@@ -13,7 +13,7 @@ from accounts.views import UserLoginView
 
 import json
 
-# Create your views here.
+# ========================= Insurance Post API View ========================================
 @csrf_exempt
 def save_insurance(request):
     if request.method == 'POST':
@@ -31,25 +31,17 @@ def save_insurance(request):
             
         return HttpResponse(insurance.id, insurance.number)
 
-# Home page for the apply loans
+# ========================= Home Page for loans View ========================================
 def loan_application(request):
     
     context = {}
     return render(request, 'loans/loan_home.html', context)
 
 # =========================== Personal Loan Views ===========================================
-class PersonalLoanView(TemplateView):
+class PersonalLoanView(LoginRequiredMixin, TemplateView):
     template_name = "loans/personal_loan.html"
     
-    def my_view(request):
-        if request.method == 'POST':
-            form = AddressForm(request.POST)
-            if form.is_valid():
-                form.save()
-                return redirect('some_success_url')
-        else:
-            form = AddressForm()
-        return render(request, 'address_form.html', {'form': form})
+    pass
     
 
 # =========================== Home Loan Views ===========================================
@@ -68,25 +60,18 @@ class HomeLoanFormView(LoginRequiredMixin, FormView):
 
     def form_valid(self, form):
         '''
-            This method is called when valid form data has been POSTed. Redirect to success_url
+            This method is called when valid form data has been POSTed. Also redirect to success_url.
         '''
         with transaction.atomic():
             response = super().form_valid(form)
             form.save()
         return response
     
-    
-    
-# def home_loan_success(request):
-#     if request.method == 'GET':
-#         return render(request, 'loans/home_loan_success.html')
-    
 class HomeLoanSuccessView(LoginRequiredMixin, TemplateView):
-    # template_name = 'core/messages.html'
     template_name = 'loans/home_loan_success.html'
     
     def get(self, request):
-        return render(request, self.template_name, )
+        return render(request, self.template_name)
     
 
 # =========================== Education Loan Views ========================================
