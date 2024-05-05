@@ -1,8 +1,11 @@
 # ---------- postgres credentials ----------------- 
 database:
-  NAME: DB_NAME
-  USER: USERNAME
-  PASSWORD: PASSWORD
-  HOST: HOST_NAME
-  PORT: YOUR_PORT
+  NAME: 'bank_db'
+  USER: 'postgres'
+  PASSWORD: 'postgres'
+  HOST: 'localhost'  
+  PORT: 5432    
 
+admin:
+  EMAIL: 'admin@mail.com'
+  PASSWORD: 'admin123'

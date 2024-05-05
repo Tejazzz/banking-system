@@ -1,0 +1,56 @@
+<!-- home_loan_form.html -->
+{% extends 'core/base.html' %} {% load static %} 
+
+{% block head_title %}Banking System{% endblock %}
+
+{% block content %}
+<style>
+    .form-container {
+        background-color: #ffffff;
+        width: 100%; 
+        max-width: 600px;
+        padding: 20px;
+        margin: 40px auto;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        border: 1px solid #ccc;
+    }
+    .form-container h2 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 20px;
+    }
+    .form-container form {
+        display: grid;
+        grid-gap: 15px;
+    }
+    .form-container input, .form-container select, .form-container button {
+        width: 100%;
+        padding: 12px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+    }
+    .form-container button {
+        background-color: #007BFF;
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: background-color 0.3s ease-in-out;
+    }
+    .form-container button:hover {
+        background-color: #0056b3;
+    }
+</style>
+<div class="form-container">
+    <h2>Apply for a Home Loan</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ home_loan_form.as_p }}
+        <button type="submit">Submit</button>
+    </form>
+</div>
+{% endblock %}
+
