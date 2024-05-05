@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from formtools.wizard.views import SessionWizardView, TemplateView
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.db import transaction
 
 from .forms import LoanForm, HomeLoanForm, EducationLoanForm, AddressForm, StudentInfoForm, UniversityForm
@@ -56,30 +56,21 @@ class PersonalLoanView(TemplateView):
 class HomeLoanFormView(LoginRequiredMixin, FormView):
     template_name = 'loans/home_loan_form.html'
     form_class = HomeLoanForm
-    success_url = reverse_lazy('home_loan_success')  # Redirect to this URL after successful form submission
+    # success_url = '/loans/home-loan-success/' # Redirect to this URL after successful form submission
+    success_url = '/core/home-loan-success/'
     
     def get(self, request):
-        print("in get function")
+        ''' 
+        This method is called for GET requests
+        '''
         if request.user.is_authenticated:
-            loan_form = LoanForm()
             home_loan_form = HomeLoanForm()
-            address_form = AddressForm()
-            return render(request, self.template_name, { 'loan_form': loan_form, 'home_loan_form': home_loan_form, 'address_form': address_form})
-        
-    def post(self, request, *args, **kwargs):
-        """
-        Handle POST requests: instantiate a form instance with the passed
-        POST variables and then check if it's valid.
-        """
-        form = self.get_form()
-        if form.is_valid():
-            return self.form_valid(form)
-        else:
-            return self.form_invalid(form)
-        
+            return render(request, self.template_name, {'home_loan_form': home_loan_form})
 
     def form_valid(self, form):
-        # This method is called when valid form data has been POSTed.
+        '''
+            This method is called when valid form data has been POSTed. Redirect to success_url
+        '''
         with transaction.atomic():
             response = super().form_valid(form)
             form.save()
@@ -87,16 +78,16 @@ class HomeLoanFormView(LoginRequiredMixin, FormView):
     
     
     
-def home_loan_success(request):
-    if request.method == 'GET':
-        return render(request, 'loans/home_loan_success.html')
+# def home_loan_success(request):
+#     if request.method == 'GET':
+#         return render(request, 'loans/home_loan_success.html')
     
 class HomeLoanSuccessView(LoginRequiredMixin, TemplateView):
     # template_name = 'core/messages.html'
     template_name = 'loans/home_loan_success.html'
     
     def get(self, request):
-        return render(request, self.template_name)
+        return render(request, self.template_name, )
     
 
 # =========================== Education Loan Views ========================================

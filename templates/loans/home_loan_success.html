@@ -1,15 +1,13 @@
-{% extends 'core/base.html' %} {% load static %} 
+{% extends 'core/base.html' %}
+{% load static %}
 
-{% block head_title %}Banking System{% endblock %}
+{% block head_title %}Home Loan Success{% endblock %}
 
 {% block content %}
-<div class="alert alert-success">
-    <strong>Success!</strong> Your loan application is submitted.
-  </div>
 
-  <h1>Application Submitted</h1>
-    <p>Your home loan application has been successfully submitted and is being processed.</p>
-    <p><a href="">Return to Home</a></p>
-  
+<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+    <strong class="font-bold">Success!</strong>
+    <span class="block sm:inline">Your home loan application has been successfully submitted and is being processed.</span>
+</div>
 
 {% endblock %}
