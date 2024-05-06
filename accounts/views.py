@@ -3,8 +3,12 @@ from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.views import LoginView
 from django.shortcuts import HttpResponseRedirect
 from django.urls import reverse_lazy
-from django.views.generic import TemplateView, RedirectView
+from django.views.generic import TemplateView, RedirectView, View
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.utils import timezone
+from django.db import transaction
 
+from .models import CheckingBankAccount, SavingsBankAccount
 from .forms import UserRegistrationForm, UserAddressForm
 
 
@@ -37,8 +41,9 @@ class UserRegistrationView(TemplateView):
             messages.success(
                 self.request,
                 (
-                    f'Thank You For Creating A Bank Account. '
-                    f'Your Account Number is {user.account.account_no}. '
+                    # f'Thank You For Creating A Bank Account. '
+                    # f'Your Account Number is {user.account.account_no}. '
+                    'Thank You for registering with us!'
                 )
             )
             return HttpResponseRedirect(
@@ -73,3 +78,42 @@ class LogoutView(RedirectView):
         if self.request.user.is_authenticated:
             logout(self.request)
         return super().get_redirect_url(*args, **kwargs)
+    
+    
+    
+# ======================================== Accounts Views ======================================
+class OpenCheckingAccountView(LoginRequiredMixin, View):
+    template_name = 'accounts/open_accounts.html'
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                # Create the checking account with default values
+                account = CheckingBankAccount(
+                    user=request.user,
+                    date_opened=timezone.now()  
+                )
+                account.save()  
+                return HttpResponseRedirect(reverse_lazy('account_success'))  
+        except Exception as e:
+            messages.error(request, f'An error occurred while creating your checking account: {str(e)}')
+            return HttpResponseRedirect(request.path)
+
+
+class OpenSavingsAccountView(LoginRequiredMixin, View):
+    template_name = 'accounts/open_accounts.html'
+    def get(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                # Create the savings account with default values
+                account = SavingsBankAccount(
+                    user=request.user,
+                    date_opened=timezone.now()  
+                )
+                account.save()  
+                return HttpResponseRedirect(reverse_lazy('account_success'))  
+        except Exception as e:
+            messages.error(request, f'An error occurred while creating your checking account: {str(e)}')
+            return HttpResponseRedirect(request.path)
+
+        

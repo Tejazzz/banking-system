@@ -1,12 +1,14 @@
 from django.db import models
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 
 from .constants import TRANSACTION_TYPE_CHOICES
-from accounts.models import UserBankAccount
+from accounts.models import BankAccount
 
 
 class Transaction(models.Model):
     account = models.ForeignKey(
-        UserBankAccount,
+        BankAccount,
         related_name='transactions',
         on_delete=models.CASCADE,
     )

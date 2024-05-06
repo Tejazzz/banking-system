@@ -1,6 +1,6 @@
 # ---------- postgres credentials ----------------- 
 database:
-  NAME: 'bank_db'
+  NAME: 'db_bank'
   USER: 'postgres'
   PASSWORD: 'postgres'
   HOST: 'localhost'  

@@ -84,7 +84,7 @@ class PersonalLoanUpdateView(UpdateView):
 class HomeLoanCreateView(LoginRequiredMixin, FormView):
     template_name = 'loans/home_loan_form.html'
     form_class = HomeLoanForm
-    success_url = 'loans:home_loan_success' # Redirect to this URL after successful form submission
+    success_url = 'loans/home-loan-success/' # Redirect to this URL after successful form submission
     
     def get(self, request):
         ''' 
