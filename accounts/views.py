@@ -1,17 +1,21 @@
 from django.contrib import messages
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.views import LoginView
-from django.shortcuts import HttpResponseRedirect
+from django.shortcuts import HttpResponseRedirect, redirect
 from django.urls import reverse_lazy
 from django.views.generic import TemplateView, RedirectView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 from django.db import transaction
+from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import login_required
 
 from .models import CheckingBankAccount, SavingsBankAccount
 from .forms import UserRegistrationForm, UserAddressForm
+import logging
 
 
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
@@ -80,44 +84,78 @@ class LogoutView(RedirectView):
         return super().get_redirect_url(*args, **kwargs)
     
     
-    
+
 # ======================================== Accounts Views ======================================
-class OpenCheckingAccountView(LoginRequiredMixin, View):
+@method_decorator(login_required, name='dispatch')
+class OpenAccountsView(TemplateView):
     template_name = 'accounts/open_accounts.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # You can add more context variables if needed
+        return context
+    
+
+class OpenCheckingAccountView(LoginRequiredMixin, View):
+    template_name = 'accounts/open_checking_accounts.html'
     
     def get(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                # Create the checking account with default values
-                account = CheckingBankAccount(
-                    user=request.user,
-                    date_opened=timezone.now(),
-                    balance=0.00,
-                    service_charge=10.00
-                )
-                account.save()  
-                return HttpResponseRedirect(reverse_lazy('account_success'))  
-        except Exception as e:
-            messages.error(request, f'An error occurred while creating your checking account: {str(e)}')
-            return HttpResponseRedirect(request.path)
+        existing_account = CheckingBankAccount.objects.filter(user=request.user, account_type='CHECKING').first()
+    
+        if existing_account:
+            # If an account exists, inform the user and redirect
+            messages.info(request, "You already have a checking account.")
+            return redirect(reverse_lazy('accounts:accounts_details'))
+        
+        with transaction.atomic():
+            # Create the checking account with default values
+            account = CheckingBankAccount(
+                user=request.user,
+                date_opened=timezone.now(),
+                balance=0.00,
+                service_charge=10.00,
+                account_type='CHECKING'
+            )
+            account.save()  
+            logger.info("Checking account successfully created for user %s", request.user)
+            return redirect(reverse_lazy('accounts:accounts_details'))  # Use redirect instead of HttpResponseRedirect for simplicity
+
+
 
 
 class OpenSavingsAccountView(LoginRequiredMixin, View):
-    template_name = 'accounts/open_accounts.html'
+    template_name = 'accounts/open_savings_account.html'
+    
     def get(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                # Create the savings account with default values
-                account = SavingsBankAccount(
-                    user=request.user,
-                    date_opened=timezone.now(),
-                    balance=0.00,
-                    interest_rate=10.00 
-                )
-                account.save()  
-                return HttpResponseRedirect(reverse_lazy('account_success'))  
-        except Exception as e:
-            messages.error(request, f'An error occurred while creating your checking account: {str(e)}')
-            return HttpResponseRedirect(request.path)
+        
+        existing_account = SavingsBankAccount.objects.filter(user=request.user, account_type='CHECKING').first()
+    
+        if existing_account:
+            # If an account exists, inform the user and redirect
+            messages.info(request, "You already have a savings account.")
+            return redirect(reverse_lazy('accounts:accounts_details'))
+        
+        
+        with transaction.atomic():
+            # Create the savings account with default values
+            account = SavingsBankAccount(
+                user=request.user,
+                date_opened=timezone.now(),
+                balance=0.00,
+                interest_rate=10.00,
+                account_type='SAVINGS'
+            )
+            account.save()  
+            return redirect(reverse_lazy('accounts:accounts_details')) 
+        
 
         
+class AccountDetailsView(LoginRequiredMixin, TemplateView):
+    template_name = 'accounts/accounts_details.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Assuming you have different types of accounts under the same user
+        # context['accounts'] = list(self.request.user.checkingaccount_set.all()) + list(self.request.user.savingsaccount_set.all())
+        context['accounts'] = self.request.user.account.all()
+        return context

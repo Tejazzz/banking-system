@@ -4,7 +4,7 @@ from django.core.validators import (MinValueValidator, MaxValueValidator,)
 from django.db import models
 from django.db.models import Max
 
-from .constants import GENDER_CHOICE
+from .constants import GENDER_CHOICE, ACCOUNT_TYPES
 from .managers import UserManager
 
 from decimal import Decimal
@@ -43,11 +43,12 @@ class UserAddress(models.Model):
     
 # ==================================== Bank Accounts =========================================
 class BankAccount(models.Model):
-    user = models.OneToOneField(
-        User,
-        related_name='account',
-        on_delete=models.CASCADE,
-    )
+    # user = models.OneToOneField(
+    #     User,
+    #     related_name='account',
+    #     on_delete=models.CASCADE,
+    # )
+    user = models.ForeignKey(User, related_name='account', on_delete=models.CASCADE)
     account_no = models.BigAutoField(primary_key=True, unique=True)
     date_opened = models.DateField(default=timezone.now)
     balance = models.DecimalField(
@@ -55,6 +56,8 @@ class BankAccount(models.Model):
         max_digits=12,
         decimal_places=2
     )
+    account_type = models.CharField(choices=ACCOUNT_TYPES, default='CHECKING')
+    
 
 class CheckingBankAccount(BankAccount):
     service_charge = models.DecimalField(

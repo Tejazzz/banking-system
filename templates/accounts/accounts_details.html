@@ -1,0 +1,26 @@
+{% extends "core/base.html" %} {% load static %} {% block head_title %}Accounts Details{% endblock %}
+{% block content %}
+<div class="container mx-auto mt-8 p-5">
+    <h1 class="text-2xl font-bold mb-4">Your Accounts</h1>
+    {% if accounts %}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% for account in accounts %}
+                <div class="bg-white p-4 shadow rounded-lg">
+                    <h2 class="text-xl font-semibold">{{ account.account_type }}</h2>
+                    <p>Account Number: {{ account.account_no }}</p>
+                    <p>Balance: ${{ account.balance }}</p>
+                    <p>Date Opened: {{ account.date_opened }}</p>
+                    {% if account.service_charge %}
+                        <p>Service Charge: ${{ account.service_charge }}</p>
+                    {% endif %}
+                    {% if account.interest_rate %}
+                        <p>Interest Rate: {{ account.interest_rate }}%</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>You do not have any accounts with us.</p>
+    {% endif %}
+</div>
+{% endblock %}
