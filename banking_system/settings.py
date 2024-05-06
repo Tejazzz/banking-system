@@ -1,10 +1,14 @@
 
 from pathlib import Path
 import yaml
-import os
+import os, logging
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
+
+# Setting up basic configuration
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 
 # Quick-start development settings - unsuitable for production

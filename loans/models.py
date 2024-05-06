@@ -2,6 +2,7 @@ from django.core.validators import (MinValueValidator, MaxValueValidator,)
 from django.db import models
 from django.utils import timezone
 from django.conf import settings
+from django.db.models import Max
 
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
@@ -98,12 +99,19 @@ class HomeLoan(Loan):
 class University(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
-    # Foreign Key
-    # address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True)
-    
     # University Info
     name = models.CharField()
-    code = models.IntegerField(unique=True)
+    code = models.IntegerField(blank=True, null=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.code:  # Check if code is not already set
+            last_code = University.objects.aggregate(Max('code'))['code__max']
+            self.code = last_code + 1 if last_code else 1001  # Start from 1001 if no entries exist
+        super(University, self).save(*args, **kwargs)
+    
+    
+    def __str__(self):
+        return self.name
     
     
 class StudentInfo(models.Model):
@@ -124,4 +132,9 @@ class EducationLoan(Loan):
     graduation_date = models.DateField()
     degree = models.CharField()
     college_id = models.CharField()
+    
+    def __init__(self, *args, **kwargs):
+        super(EducationLoan, self).__init__(*args, **kwargs)
+        if self._state.adding:
+            self.interest_rate = Decimal('8.0')
     

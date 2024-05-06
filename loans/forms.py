@@ -3,7 +3,8 @@ from django.db import transaction, IntegrityError
 from django.forms.widgets import SelectDateWidget, NumberInput
 from django.core.exceptions import ValidationError
 from decimal import Decimal, getcontext
-from django.forms import ModelForm, TextInput
+from django.forms import ModelForm, TextInput, DateInput
+import logging
 
 from .models import Address, Loan, HomeLoan, EducationLoan, StudentInfo, University, Insurance
 from .constants import US_STATES
@@ -19,14 +20,14 @@ class LoanForm(forms.ModelForm):
         super(LoanForm, self).__init__(*args, **kwargs)
         
     def save(self, user=None, commit=True):
-        instance = super(LoanForm, self).save(commit=False)
-        # instance.loan_type = 'personal'
+        loan = super(LoanForm, self).save(commit=False)
+        loan.loan_type = 'personal'
         # Optionally perform other custom logic before saving
         if self.user:
-            instance.user = self.user
+            loan.user = self.user
         if commit:
-            instance.save()
-        return instance
+            loan.save()
+        return loan
         
         
 # Utility Function to extract list of fields from Form Classs
@@ -35,7 +36,7 @@ def get_fields(form_meta):
         if form_meta.fields == '__all__':
             return []
         return list(form_meta.fields)
-    return []
+    return [] 
 
 # =============================== Home Loan Forms ============================================
 
@@ -58,7 +59,11 @@ class HomeLoanForm(forms.ModelForm):
         model = HomeLoan
         fields = get_fields(LoanForm.Meta) + ['house_built_year', 'insurance']
         
-    def save(self, commit=True):
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)  # Extract user from kwargs and remove it
+        super(HomeLoanForm, self).__init__(*args, **kwargs)
+        
+    def save(self, commit=True, user=None):
         try:
             with transaction.atomic():
                 # Creating the address object
@@ -83,7 +88,7 @@ class HomeLoanForm(forms.ModelForm):
                 tenure = self.cleaned_data['tenure']
                 interest_rate = Decimal('0.10')  # 10% annual interest rate
                 monthly_interest_rate = interest_rate / 12
-                number_of_payments = tenure * 12  # converting years to months
+                number_of_payments = tenure # tenure in months
 
                 # EMI Formula: E = [P * r * (1+r)^n] / [(1+r)^n – 1]
                 getcontext().prec = 10  
@@ -94,151 +99,127 @@ class HomeLoanForm(forms.ModelForm):
                     emi_amount = Decimal('99999999.99')
 
                 home_loan.emi_amount = round(emi_amount, 2)
+                
+                if self.user:
+                    home_loan.user = self.user
 
                 # Save HomeLoan to the DB if commit is True
                 if commit:
                     home_loan.save()
                 return home_loan
-        # Handle specific errors with decimal conversion or arithmetic
-        except ValueError as ve:
-            raise ValidationError({"amount": "Invalid number input or arithmetic issue: " + str(ve)})
-        except IntegrityError as ie:
-            raise ValidationError({"database": "Database integrity error: " + str(ie)})
         except Exception as e:
-            raise ValidationError({"general": "An error occurred: " + str(e)})
+            logging.error(f"Failed to save Home Loan form: {e}")
+            self.add_error(None, f"Failed to process the form due to a system error: {e}")
 
 # =============================== Education Loan Forms ============================================
-
-class UniversityForm(forms.ModelForm):
-    class Meta:
-        model = University 
-        fields = '__all__'
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'code': forms.NumberInput(attrs={'class': 'form-control'}),
-        }
-
 class StudentInfoForm(forms.ModelForm):
     date_of_birth = forms.DateTimeField(label="Date of Birth", required=True, widget=NumberInput(attrs={'type':'date'}))
     class Meta:
         model = StudentInfo
         fields = '__all__'
             
-        
 
+class EducationLoanForm(ModelForm):
+    university = forms.ModelChoiceField(
+        queryset=University.objects.all().order_by('name'),
+        empty_label="Select University",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    first_name = forms.CharField(max_length=100)
+    last_name = forms.CharField(max_length=100)
+    email = forms.EmailField()
+    phone = forms.CharField(max_length=15)
+    date_of_birth = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
 
-class EducationLoanForm(forms.ModelForm):
-    graduation_date = forms.DateTimeField(label="Graduation Date", required=True, widget=NumberInput(attrs={'type':'date'}))
     class Meta:
         model = EducationLoan
-        fields = get_fields(LoanForm.Meta) + get_fields(UniversityForm.Meta) + get_fields(AddressForm) + get_fields(StudentInfoForm.Meta) + ['graduation_date', 'degree', 'college_id']
-    
-    
+        fields = get_fields(LoanForm.Meta) +  ['university', 'graduation_date', 'degree', 'college_id', 'first_name', 'last_name', 'email', 'phone', 'date_of_birth']
+        # Add widgets and labels as needed here
+        widgets = {
+            'graduation_date': DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control',
+                'placeholder': 'Graduation Date'
+            }),
+            'degree': TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Degree'
+            }),
+            'college_id': TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'College ID'
+            }),
+            'student_info': forms.Select(attrs={
+                'class': 'form-control',
+            })
+        }
+        labels = {
+            'student_info': 'Student Information',
+            'graduation_date': 'Graduation Date',
+            'degree': 'Type of Degree',
+            'college_id': 'College Identifier'
+        }
+        
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
         super(EducationLoanForm, self).__init__(*args, **kwargs)
-        self.fields.update(LoanForm.base_fields)
-        self.fields.update(UniversityForm.base_fields)
-        self.fields.update(StudentInfoForm.base_fields)
-        # Ensure all fields are properly initialized here
         
     def save(self, commit=True):
-        with transaction.atomic():
-            # Manually handle data for University and StudentInfo
-            university_data = {
-                'name': self.cleaned_data.get('university_name'),
-                'code': self.cleaned_data.get('university_code')
-            }
-            university, created = University.objects.update_or_create(
-                name=university_data['name'],
-                defaults=university_data
-            )
+        if not commit:
+            raise ValueError("Cannot save without committing the transaction")
 
-            student_info_data = {
-                'first_name': self.cleaned_data.get('student_first_name'),
-                'last_name': self.cleaned_data.get('student_last_name'),
-                'date_of_birth': self.cleaned_data.get('student_date_of_birth'),
-                'email': self.cleaned_data.get('student_email'),
-                'phone': self.cleaned_data.get('student_phone')
-            }
-            student_info, created = StudentInfo.objects.update_or_create(
-                email=student_info_data['email'],  # assuming email is unique
-                defaults=student_info_data
-            )
+        education_loan = super().save(commit=False)  # Do not commit yet
+        try:
+            with transaction.atomic():  # Use atomic to ensure all or nothing is saved
+                # Create or update the student information
+                
+                student = StudentInfo.objects.create(
+                            first_name=self.cleaned_data['first_name'],
+                            last_name=self.cleaned_data['last_name'],
+                            date_of_birth=self.cleaned_data['date_of_birth'],
+                            email=self.cleaned_data['email'],
+                            phone=self.cleaned_data['phone']
+                        )
 
-            # Assign related objects to the EducationLoan instance
-            education_loan = super(EducationLoanForm, self).save(commit=False)
-            education_loan.university = university
-            education_loan.student_info = student_info
-            education_loan.graduation_date = self.cleaned_data['graduation_date']
-            education_loan.degree = self.cleaned_data['degree']
-            education_loan.college_id = self.cleaned_data['college_id']
+                education_loan.student_info = student
+                if hasattr(self, 'user') and self.user:
+                    education_loan.user = self.user
 
-            if commit:
-                education_loan.save()
+                # Set additional fields
+                education_loan.university = self.cleaned_data['university']
+                education_loan.graduation_date = self.cleaned_data['graduation_date']
+                education_loan.degree = self.cleaned_data['degree']
+                education_loan.college_id = self.cleaned_data['college_id']
 
-            return education_loan
+                # Assuming `amount` and `tenure` are part of EducationLoan model or form
+                amount = self.cleaned_data.get('amount')
+                tenure = self.cleaned_data.get('tenure')
+                interest_rate = Decimal('0.08')  # Assuming interest rate is fixed for simplification
 
-# ------------------------- Unused Forms ------------------------------
+                # Calculate EMI
+                getcontext().prec = 10
+                monthly_interest_rate = interest_rate / 12
+                number_of_payments = tenure * 12  # assuming tenure is in years
 
-# class EducationLoanForm(LoanForm, UniversityForm, StudentInfoForm):
-    
-#     class Meta(LoanForm.Meta, UniversityForm.Meta, StudentInfoForm.Meta):
-#         model = EducationLoan
-#         print(LoanForm.Meta.fields)
-#         fields = [LoanForm.Meta.fields] + [StudentInfoForm.Meta.fields] + [UniversityForm.Meta.fields] + ['graduation_date', 'degree', 'college_id']
+                emi_amount = (Decimal(amount) * monthly_interest_rate * (Decimal('1') + monthly_interest_rate) ** number_of_payments) / \
+                             ((Decimal('1') + monthly_interest_rate) ** number_of_payments - Decimal('1'))
 
+                education_loan.emi_amount = emi_amount.quantize(Decimal('1.00')) if emi_amount <= Decimal('99999999.99') else Decimal('99999999.99')
+                
+                education_loan.save()  # Now commit the saved loan
+                
+        except Exception as e:
+            logging.error(f"Failed to save Education Loan form: {e}")
+            self.add_error(None, f"Failed to process the form due to a system error: {e}")
+            raise
 
-#     # def save(self, commit=True):
-#     #     university = University(name=self.cleaned_data)
+        return education_loan
 
-
-# class EducationLoan(forms.ModelForm):
+# class UniversityForm(forms.ModelForm):
 #     class Meta:
-#         model = EducationLoan
-#         fields = ['graduation_date', 'degree', 'college_id']
-
-
-# class EducationLoanForm(forms.ModelForm):
-#     # Fields from University
-#     university_name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
-#     university_code = forms.IntegerField(widget=forms.NumberInput(attrs={'class': 'form-control'}))
-    
-#     # Fields from StudentInfo
-#     student_first_name = forms.CharField()
-#     student_middle_name = forms.CharField(required=False)
-#     student_last_name = forms.CharField()
-#     student_date_of_birth = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-#     student_email = forms.EmailField()
-#     student_phone = forms.CharField()
-    
-#     # Specific fields for EducationLoan
-#     graduation_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-#     degree = forms.CharField()
-#     college_id = forms.CharField()
-
-#     class Meta:
-#         model = EducationLoan
-#         fields = ['graduation_date', 'degree', 'college_id']
-
-#     def save(self, commit=True):
-#         # This needs to be implemented based on how you handle related objects
-#         # This is a simplified approach:
-#         university = University(name=self.cleaned_data['university_name'], code=self.cleaned_data['university_code'])
-#         university.save()
-
-#         student_info = StudentInfo(
-#             first_name=self.cleaned_data['student_first_name'],
-#             middle_name=self.cleaned_data['student_middle_name'],
-#             last_name=self.cleaned_data['student_last_name'],
-#             date_of_birth=self.cleaned_data['student_date_of_birth'],
-#             email=self.cleaned_data['student_email'],
-#             phone=self.cleaned_data['student_phone']
-#         )
-#         student_info.save()
-
-#         education_loan = super().save(commit=False)
-#         education_loan.university = university
-#         education_loan.student_info = student_info
-#         if commit:
-#             education_loan.save()
-#         return education_loan
+#         model = University 
+#         fields = '__all__'
+#         widgets = {
+#             'name': forms.TextInput(attrs={'class': 'form-control'}),
+#             'code': forms.NumberInput(attrs={'class': 'form-control'}),
+#         }

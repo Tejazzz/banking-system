@@ -7,10 +7,14 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.generic import CreateView, ListView, UpdateView
 from django.db import transaction
+from django.contrib import messages
+from django.db.models import Max
 
-from .forms import LoanForm, HomeLoanForm, EducationLoanForm, AddressForm, StudentInfoForm, UniversityForm
-from .models import Insurance, Loan, HomeLoan
-from accounts.views import UserLoginView
+from .forms import LoanForm, HomeLoanForm, EducationLoanForm, AddressForm
+from .models import Insurance, Loan, University
+
+from django.http import JsonResponse, HttpResponseBadRequest
+from django.views.decorators.http import require_http_methods
 
 import json
 
@@ -41,8 +45,15 @@ class PersonalLoanCreateView(LoginRequiredMixin, CreateView):
         This method is called when valid form data has been posted.
         It should return an HttpResponse.
         '''
-        # form.instance.user = self.request.user
-        return super().form_valid(form)  # Saves the form instance, form.save() is called here
+        messages.success(self.request, "Personal loan application submitted successfully!")
+        with transaction.atomic():
+            form.instance.user = self.request.user
+            return super().form_valid(form)  # Saves the form instance, form.save() is called here
+        
+    def form_invalid(self, form):
+        ''' Adding an error message '''
+        messages.error(self.request, "Error submitting the personal loan application. Please check the form.")
+        return super().form_invalid(form)
         
     
     def get_form_kwargs(self):
@@ -84,7 +95,7 @@ class PersonalLoanUpdateView(UpdateView):
 class HomeLoanCreateView(LoginRequiredMixin, FormView):
     template_name = 'loans/home_loan_form.html'
     form_class = HomeLoanForm
-    success_url = 'loans/home-loan-success/' # Redirect to this URL after successful form submission
+    success_url = reverse_lazy('loans:loans_list') # Redirect to this URL after successful form submission
     
     def get(self, request):
         ''' 
@@ -98,10 +109,31 @@ class HomeLoanCreateView(LoginRequiredMixin, FormView):
         '''
             This method is called when valid form data has been POSTed. Also redirect to success_url.
         '''
+        messages.success(self.request, "Home loan application submitted successfully!")
         with transaction.atomic():
+            form.instance.user = self.request.user
             response = super().form_valid(form)
             form.save()
-        return response
+        return HttpResponseRedirect(self.get_success_url())
+    
+    def form_invalid(self, form):
+        ''' Adding an error message '''
+        print(form.errors)
+        for field, errors in form.errors.items():
+            for error in errors:
+                # Customize this as needed to format messages nicely
+                messages.error(self.request, f"{form.fields[field].label}: {error}")
+        # messages.error(self.request, "Error submitting the home loan application. Please check the form.")
+        response = super().form_invalid(form)
+        return HttpResponseRedirect(reverse_lazy('loans:apply_home_loan'))
+    
+    def get_form_kwargs(self):
+        """
+        Pass additional kwargs to the form instance. Useful for passing the request object or other variables.
+        """
+        kwargs = super(HomeLoanCreateView, self).get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
     
     
 class HomeLoanSuccessView(LoginRequiredMixin, TemplateView):
@@ -112,48 +144,38 @@ class HomeLoanSuccessView(LoginRequiredMixin, TemplateView):
     
 
 # =========================== Education Loan Views ========================================
-class EducationLoanWizard(LoginRequiredMixin, SessionWizardView):
-    template_name = 'loans/education_loan_form.html'
-    form_list = [LoanForm, AddressForm, StudentInfoForm, UniversityForm, EducationLoanForm]
-
-    def done(self, form_list, **kwargs):
-        # Process the forms into models
-        forms = {form.__class__.__name__: form for form in form_list}
-        
-        # Use similar logic from your original save method to create or update objects
-        # Saving logic here...
-        
-        # Redirect to success page or any other
-        return redirect(reverse_lazy('education_loan_success'))
-
-    def get_context_data(self, form, **kwargs):
-        context = super(EducationLoanWizard, self).get_context_data(form=form, **kwargs)
-        context['step_title'] = "Step {} of {}".format(self.steps.step1, self.steps.count)
-        return context
-
-
-class EducationLoanFormView(LoginRequiredMixin, FormView):
+class EducationLoanCreateView(LoginRequiredMixin, FormView):
     template_name = 'loans/education_loan_form.html'
     form_class = EducationLoanForm
-    success_url = reverse_lazy('education_loan_success')  # Redirect to this URL after successful form submission
-    
+    success_url = reverse_lazy('loans:loans_list')  # Ensure this is the correct URL for redirect after success
+
     def get(self, request):
-        print("in get function")
+        ''' Handles GET requests '''
         if request.user.is_authenticated:
-            loan_form = LoanForm()
-            address_form = AddressForm()
-            student_info_form = StudentInfoForm()
-            university_form = UniversityForm()
-            education_loan_form = EducationLoanForm()
-            ctx = {
-                'loan_form': loan_form, 
-                'education_loan_form': education_loan_form,
-                'address_form': address_form,
-                'student_info_form': student_info_form,
-                'university_form': university_form
-            }
-            return render(request, self.template_name, { 'ctx': ctx})
-        
+            education_loan_form = EducationLoanForm(user=request.user)
+            return render(request, self.template_name, {'form': education_loan_form})
+
+    def form_valid(self, form):
+        ''' Called when valid form data has been POSTed. Also redirect to success_url '''
+        messages.success(self.request, "Education loan application submitted successfully!")
+        with transaction.atomic():
+            form.instance.user = self.request.user
+            form.save()  # Ensure the form's save method handles saving correctly
+        return HttpResponseRedirect(self.get_success_url())
+
+    def form_invalid(self, form):
+        ''' Adding an error message '''
+        print(form.errors)
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(self.request, f"{form.fields[field].label}: {error}")
+        return super().form_invalid(form)
+
+    def get_form_kwargs(self):
+        ''' Pass additional kwargs to the form instance. '''
+        kwargs = super(EducationLoanCreateView, self).get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
         
 # ========================= Insurance Post API View ========================================
 @csrf_exempt
@@ -172,3 +194,48 @@ def save_insurance(request):
         insurance.save()
             
         return HttpResponse(insurance.id, insurance.number)
+    
+    
+# ========================= University Post API View ========================================
+@csrf_exempt
+def add_university(request):
+    if request.method == 'POST':
+        
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+        
+        insurance = Insurance()
+        
+        insurance.number = body.get('number')
+        insurance.company = body.get('company')
+        insurance.premium = body.get('premium')
+        
+        insurance.save()
+            
+        return HttpResponse(insurance.id, insurance.number)
+    
+@csrf_exempt
+def add_universities(request):
+    try:
+        if request.method == 'POST':
+            data = json.loads(request.body)
+            if not isinstance(data, list):
+                return HttpResponseBadRequest("Expected a list of data.")
+
+            last_code = University.objects.all().aggregate(Max('code'))['code__max'] or 1000  # Start from 1000 to increment to 1001 next
+
+            universities = []
+            for uni_data in data:
+                if 'institution' not in uni_data:
+                    return HttpResponseBadRequest("Missing 'institution' in JSON data.")
+                last_code += 1  # Increment code
+                universities.append(University(name=uni_data['institution'], code=last_code))
+
+            University.objects.bulk_create(universities)
+            response_data = [{"name": uni.name, "code": uni.code} for uni in universities]
+            return JsonResponse({"message": "Universities added successfully.", "universities": response_data}, status=201)
+    
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("Invalid JSON")
+    except Exception as e:
+        return HttpResponseBadRequest(f"Error saving universities: {str(e)}")

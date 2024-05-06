@@ -2,6 +2,7 @@ from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import (MinValueValidator, MaxValueValidator,)
 from django.db import models
+from django.db.models import Max
 
 from .constants import GENDER_CHOICE
 from .managers import UserManager
@@ -40,21 +41,20 @@ class UserAddress(models.Model):
     def __str__(self):
         return self.user.email
     
-    
+# ==================================== Bank Accounts =========================================
 class BankAccount(models.Model):
     user = models.OneToOneField(
         User,
         related_name='account',
         on_delete=models.CASCADE,
     )
-    account_no = models.PositiveIntegerField(primary_key=True, unique=True)
+    account_no = models.BigAutoField(primary_key=True, unique=True)
     date_opened = models.DateField(default=timezone.now)
     balance = models.DecimalField(
-        default=0,
+        default=0.00,
         max_digits=12,
         decimal_places=2
     )
-    
 
 class CheckingBankAccount(BankAccount):
     service_charge = models.DecimalField(

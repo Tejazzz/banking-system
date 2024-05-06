@@ -1,71 +1,60 @@
-<!-- home_loan_form.html -->
-{% extends 'core/base.html' %} {% load static %} 
+{% extends 'core/base.html' %} 
+{% load static %} 
 
-{% block head_title %}Banking System{% endblock %}
-
-{% block content %}
-<style>
-    .form-container {
-        background-color: #ffffff;
-        width: 100%; 
-        max-width: 600px;
-        padding: 20px;
-        margin: 40px auto;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        border-radius: 8px;
-        border: 1px solid #ccc;
-    }
-    .form-container h2 {
-        text-align: center;
-        color: #333;
-        margin-bottom: 20px;
-    }
-    .form-container form {
-        display: grid;
-        grid-gap: 15px;
-    }
-    .form-container input, .form-container select, .form-container button {
-        width: 100%;
-        padding: 12px;
-        border-radius: 5px;
-        border: 1px solid #ccc;
-        box-sizing: border-box;
-    }
-    .form-container button {
-        background-color: #007BFF;
-        color: white;
-        font-size: 16px;
-        font-weight: bold;
-        text-transform: uppercase;
-        cursor: pointer;
-        transition: background-color 0.3s ease-in-out;
-    }
-    .form-container button:hover {
-        background-color: #0056b3;
-    }
-    h2 {
-        font-weight: bold;
-        font-size: large;
-    }
-</style>
-
-<div class="form-container">
-    <h2>Apply for an Education Loan - {{ step_title }}</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ wizard.management_form }}
-        {% if wizard.form.forms %}
-            {{ wizard.form.management_form }}
-            {% for form in wizard.form.forms %}
-                {{ form.as_p }}
-            {% endfor %}
-        {% else %}
-            {{ wizard.form.as_p }}
-        {% endif %}
-        <button type="submit">{% if wizard.steps.last %}Submit{% else %}Continue{% endif %}</button>
-    </form>
-</div>
-
-
+{% block head_title %}
+    Education Loan
 {% endblock %}
 
+{% block content %}
+<form method="post" action="" class="container mx-auto mt-8 p-5">
+    {% csrf_token %}
+    <div class="mb-8 p-5 shadow-lg rounded-lg bg-white">
+        <h2 class="text-xl font-semibold mb-6">Student Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Manually handle each field to apply Tailwind CSS -->
+            <div>
+                <label class="block font-medium text-gray-700">First Name</label>
+                {{ form.first_name }}
+            </div>
+            <div>
+                <label class="block font-medium text-gray-700">Middle Name</label>
+                {{ form.middle_name }}
+            </div>
+            <div>
+                <label class="block font-medium text-gray-700">Last Name</label>
+                {{ form.last_name }}
+            </div>
+            <div>
+                <label class="block font-medium text-gray-700">Date of Birth</label>
+                {{ form.date_of_birth }}
+            </div>
+            <div>
+                <label class="block font-medium text-gray-700">Email</label>
+                {{ form.email}}
+            </div>
+            <div>
+                <label class="block font-medium text-gray-700">Phone</label>
+                {{ form.phone }}
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-8 p-5 shadow-lg rounded-lg bg-white">
+        <h2 class="text-xl font-semibold mb-6">Loan Details</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {{ form.amount }}
+            {{ form.tenure }}
+            {{ form.university }}
+            {{ form.graduation_date }}
+            {{ form.degree }}
+            {{ form.college_id }}
+        </div>
+    </div>
+
+    <div class="flex justify-end mt-4">
+        <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            Submit Application
+        </button>
+    </div>
+</form>
+{% endblock %}

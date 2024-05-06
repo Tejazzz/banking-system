@@ -91,7 +91,9 @@ class OpenCheckingAccountView(LoginRequiredMixin, View):
                 # Create the checking account with default values
                 account = CheckingBankAccount(
                     user=request.user,
-                    date_opened=timezone.now()  
+                    date_opened=timezone.now(),
+                    balance=0.00,
+                    service_charge=10.00
                 )
                 account.save()  
                 return HttpResponseRedirect(reverse_lazy('account_success'))  
@@ -108,7 +110,9 @@ class OpenSavingsAccountView(LoginRequiredMixin, View):
                 # Create the savings account with default values
                 account = SavingsBankAccount(
                     user=request.user,
-                    date_opened=timezone.now()  
+                    date_opened=timezone.now(),
+                    balance=0.00,
+                    interest_rate=10.00 
                 )
                 account.save()  
                 return HttpResponseRedirect(reverse_lazy('account_success'))  
