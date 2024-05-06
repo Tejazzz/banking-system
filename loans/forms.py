@@ -3,6 +3,7 @@ from django.db import transaction, IntegrityError
 from django.forms.widgets import SelectDateWidget, NumberInput
 from django.core.exceptions import ValidationError
 from decimal import Decimal, getcontext
+from django.forms import ModelForm, TextInput
 
 from .models import Address, Loan, HomeLoan, EducationLoan, StudentInfo, University, Insurance
 from .constants import US_STATES
@@ -11,10 +12,22 @@ class LoanForm(forms.ModelForm):
     
     class Meta:
         model = Loan
-        fields = [
-            'amount',
-            'tenure'
-        ]
+        fields = ['amount', 'tenure']
+        
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)  # Extract user from kwargs and remove it
+        super(LoanForm, self).__init__(*args, **kwargs)
+        
+    def save(self, user=None, commit=True):
+        instance = super(LoanForm, self).save(commit=False)
+        # instance.loan_type = 'personal'
+        # Optionally perform other custom logic before saving
+        if self.user:
+            instance.user = self.user
+        if commit:
+            instance.save()
+        return instance
+        
         
 # Utility Function to extract list of fields from Form Classs
 def get_fields(form_meta):
@@ -63,6 +76,7 @@ class HomeLoanForm(forms.ModelForm):
                 home_loan = super().save(commit=False)
                 home_loan.home_address = address
                 home_loan.insurance = insurance
+                home_loan.loan_type = 'home'
 
                 # Calculate EMI
                 amount = self.cleaned_data['amount']

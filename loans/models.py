@@ -1,26 +1,59 @@
-from decimal import Decimal
-
-from django.contrib.auth.models import AbstractUser
-from django.core.validators import (
-    MinValueValidator,
-    MaxValueValidator,
-)
+from django.core.validators import (MinValueValidator, MaxValueValidator,)
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
+
+from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from phonenumber_field.modelfields import PhoneNumberField
 
 import uuid
+from decimal import Decimal
 
 
 # ---------------------------- Personal Loan ---------------------------------------------
 class Loan(models.Model):
+    class LoanStatusChoices(models.TextChoices):
+        PENDING = 'Pending', 'Pending'
+        APPROVED = 'Approved', 'Approved'
+        DECLINED = 'Declined', 'Declined'
+        
+    LOAN_TYPES = (
+        ('personal', 'Personal Loan'),
+        ('home', 'Home Loan'),
+        ('education', 'Education Loan')
+    )
+        
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     loan_id = models.BigAutoField(primary_key=True)
     amount = models.DecimalField(max_digits= 10, decimal_places=2, null=False)
     emi_amount =  models.DecimalField(max_digits= 10, decimal_places=2, null=False)
     interest_rate = models.DecimalField(decimal_places=2, max_digits=5, null=False, default=10)
     tenure = models.PositiveIntegerField(null=False)
     installment_paid = models.PositiveIntegerField(default=0, null=False)
+    status = models.CharField(
+        max_length=10,
+        choices=LoanStatusChoices.choices,
+        default=LoanStatusChoices.PENDING,
+        null=False
+    )
+    loan_type = models.CharField(choices=LOAN_TYPES, max_length=10, default='personal')
+    
+    def save(self, *args, **kwargs):
+        self.calculate_emi()
+        super().save(*args, **kwargs)
+
+    def calculate_emi(self):
+        P = self.amount
+        r = self.interest_rate / Decimal('100.0') / Decimal('12.0') 
+        n = self.tenure * 12  # Convert tenure to months
+
+        if n > 0 and r > 0:
+            emi = (P * r * (1 + r) ** n) / ((1 + r) ** n - 1)
+        else:
+            emi = 0
+
+        self.emi_amount = emi.quantize(Decimal('0.01')) 
 
     
 # -------------------------- Home Loan ---------------------------------------------------
@@ -31,6 +64,9 @@ class Address(models.Model):
     state = models.CharField(max_length=100, null=False, blank=False)
     country = models.CharField(default="United States")
     zip_code = models.CharField(max_length=10, null=False, blank=False)
+    
+    def __str__(self):
+        return f"{self.street}, {self.city}, {self.state}, {self.country}, {self.zip_code}"
     
 class Insurance(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -63,7 +99,7 @@ class University(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
     # Foreign Key
-    address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True)
+    # address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True)
     
     # University Info
     name = models.CharField()
