@@ -1,19 +1,19 @@
-from django.contrib import messages
-from django.contrib.auth import get_user_model, login, logout
-from django.contrib.auth.views import LoginView
-from django.shortcuts import HttpResponseRedirect, redirect
-from django.urls import reverse_lazy
-from django.views.generic import TemplateView, RedirectView, View
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.utils import timezone
-from django.db import transaction
-from django.utils.decorators import method_decorator
-from django.contrib.auth.decorators import login_required
-
-from .models import CheckingBankAccount, SavingsBankAccount
-from .forms import UserRegistrationForm, UserAddressForm
 import logging
 
+from django.contrib import messages
+from django.contrib.auth import get_user_model, login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import LoginView
+from django.db import transaction
+from django.shortcuts import HttpResponseRedirect, redirect
+from django.urls import reverse_lazy
+from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.generic import TemplateView, RedirectView, View
+
+from .forms import UserRegistrationForm, UserAddressForm
+from .models import CheckingBankAccount, SavingsBankAccount
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -27,7 +27,7 @@ class UserRegistrationView(TemplateView):
     def dispatch(self, request, *args, **kwargs):
         if self.request.user.is_authenticated:
             return HttpResponseRedirect(
-                reverse_lazy('transactions:transaction_report')
+                reverse_lazy('user_home')
             )
         return super().dispatch(request, *args, **kwargs)
 
@@ -51,7 +51,7 @@ class UserRegistrationView(TemplateView):
                 )
             )
             return HttpResponseRedirect(
-                reverse_lazy('transactions:deposit_money')
+                reverse_lazy('user_home')
             )
 
         return self.render_to_response(
@@ -71,7 +71,7 @@ class UserRegistrationView(TemplateView):
 
 
 class UserLoginView(LoginView):
-    template_name='accounts/user_login.html'
+    template_name = 'accounts/user_login.html'
     redirect_authenticated_user = False
 
 
@@ -82,8 +82,7 @@ class LogoutView(RedirectView):
         if self.request.user.is_authenticated:
             logout(self.request)
         return super().get_redirect_url(*args, **kwargs)
-    
-    
+
 
 # ======================================== Accounts Views ======================================
 @method_decorator(login_required, name='dispatch')
@@ -94,19 +93,19 @@ class OpenAccountsView(TemplateView):
         context = super().get_context_data(**kwargs)
         # You can add more context variables if needed
         return context
-    
+
 
 class OpenCheckingAccountView(LoginRequiredMixin, View):
     template_name = 'accounts/open_checking_accounts.html'
-    
+
     def get(self, request, *args, **kwargs):
         existing_account = CheckingBankAccount.objects.filter(user=request.user, account_type='CHECKING').first()
-    
+
         if existing_account:
             # If an account exists, inform the user and redirect
             messages.info(request, "You already have a checking account.")
-            return redirect(reverse_lazy('accounts:accounts_details'))
-        
+            return redirect(reverse_lazy('accounts:accounts_home'))
+
         with transaction.atomic():
             # Create the checking account with default values
             account = CheckingBankAccount(
@@ -116,26 +115,23 @@ class OpenCheckingAccountView(LoginRequiredMixin, View):
                 service_charge=10.00,
                 account_type='CHECKING'
             )
-            account.save()  
+            account.save()
             logger.info("Checking account successfully created for user %s", request.user)
-            return redirect(reverse_lazy('accounts:accounts_details'))  # Use redirect instead of HttpResponseRedirect for simplicity
-
-
+            return redirect(reverse_lazy(
+                'accounts:accounts_home'))  # Use redirect instead of HttpResponseRedirect for simplicity
 
 
 class OpenSavingsAccountView(LoginRequiredMixin, View):
     template_name = 'accounts/open_savings_account.html'
-    
+
     def get(self, request, *args, **kwargs):
-        
-        existing_account = SavingsBankAccount.objects.filter(user=request.user, account_type='CHECKING').first()
-    
+        existing_account = SavingsBankAccount.objects.filter(user=request.user, account_type='SAVINGS').first()
+
         if existing_account:
             # If an account exists, inform the user and redirect
             messages.info(request, "You already have a savings account.")
-            return redirect(reverse_lazy('accounts:accounts_details'))
-        
-        
+            return redirect(reverse_lazy('accounts:accounts_home'))
+
         with transaction.atomic():
             # Create the savings account with default values
             account = SavingsBankAccount(
@@ -145,17 +141,15 @@ class OpenSavingsAccountView(LoginRequiredMixin, View):
                 interest_rate=10.00,
                 account_type='SAVINGS'
             )
-            account.save()  
-            return redirect(reverse_lazy('accounts:accounts_details')) 
-        
+            account.save()
+            return redirect(reverse_lazy('accounts:accounts_home'))
 
-        
+
 class AccountDetailsView(LoginRequiredMixin, TemplateView):
-    template_name = 'accounts/accounts_details.html'
+    template_name = 'accounts/accounts_home.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Assuming you have different types of accounts under the same user
-        # context['accounts'] = list(self.request.user.checkingaccount_set.all()) + list(self.request.user.savingsaccount_set.all())
         context['accounts'] = self.request.user.account.all()
         return context

@@ -1,9 +1,8 @@
-from django.db import models
-from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.db import models
 
-from .constants import TRANSACTION_TYPE_CHOICES
 from accounts.models import BankAccount
+from .constants import TRANSACTION_TYPE_CHOICES
 
 
 class Transaction(models.Model):
@@ -20,13 +19,11 @@ class Transaction(models.Model):
         decimal_places=2,
         max_digits=12
     )
-    transaction_type = models.PositiveSmallIntegerField(
-        choices=TRANSACTION_TYPE_CHOICES
-    )
+    transaction_type = models.CharField(choices=TRANSACTION_TYPE_CHOICES, max_length=10)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return str(self.account.account_no)
 
     class Meta:
-        ordering = ['timestamp']
+        ordering = ['-timestamp']

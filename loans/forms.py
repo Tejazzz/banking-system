@@ -1,24 +1,24 @@
-from django import forms
-from django.db import transaction, IntegrityError
-from django.forms.widgets import SelectDateWidget, NumberInput
-from django.core.exceptions import ValidationError
-from decimal import Decimal, getcontext
-from django.forms import ModelForm, TextInput, DateInput
 import logging
+from decimal import Decimal, getcontext
 
-from .models import Address, Loan, HomeLoan, EducationLoan, StudentInfo, University, Insurance
+from django import forms
+from django.db import transaction
+from django.forms import ModelForm, TextInput, DateInput
+from django.forms.widgets import NumberInput
+
 from .constants import US_STATES
+from .models import Address, Loan, HomeLoan, EducationLoan, StudentInfo, University, Insurance
+
 
 class LoanForm(forms.ModelForm):
-    
     class Meta:
         model = Loan
         fields = ['amount', 'tenure']
-        
+
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)  # Extract user from kwargs and remove it
         super(LoanForm, self).__init__(*args, **kwargs)
-        
+
     def save(self, user=None, commit=True):
         loan = super(LoanForm, self).save(commit=False)
         loan.loan_type = 'personal'
@@ -28,15 +28,16 @@ class LoanForm(forms.ModelForm):
         if commit:
             loan.save()
         return loan
-        
-        
+
+
 # Utility Function to extract list of fields from Form Classs
 def get_fields(form_meta):
     if hasattr(form_meta, 'fields'):
         if form_meta.fields == '__all__':
             return []
         return list(form_meta.fields)
-    return [] 
+    return []
+
 
 # =============================== Home Loan Forms ============================================
 
@@ -52,17 +53,17 @@ class HomeLoanForm(forms.ModelForm):
     city = forms.CharField(max_length=100)
     state = forms.ChoiceField(choices=US_STATES)
     zip_code = forms.CharField(max_length=10)
-    
+
     insurance = forms.ModelChoiceField(queryset=Insurance.objects.all(), empty_label="Select Insurance")
-    
+
     class Meta:
         model = HomeLoan
         fields = get_fields(LoanForm.Meta) + ['house_built_year', 'insurance']
-        
+
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)  # Extract user from kwargs and remove it
         super(HomeLoanForm, self).__init__(*args, **kwargs)
-        
+
     def save(self, commit=True, user=None):
         try:
             with transaction.atomic():
@@ -88,18 +89,19 @@ class HomeLoanForm(forms.ModelForm):
                 tenure = self.cleaned_data['tenure']
                 interest_rate = Decimal('0.10')  # 10% annual interest rate
                 monthly_interest_rate = interest_rate / 12
-                number_of_payments = tenure # tenure in months
+                number_of_payments = tenure  # tenure in months
 
                 # EMI Formula: E = [P * r * (1+r)^n] / [(1+r)^n – 1]
-                getcontext().prec = 10  
-                emi_amount = (Decimal(amount) * monthly_interest_rate * (Decimal('1') + monthly_interest_rate) ** number_of_payments) / \
-                    ((Decimal('1') + monthly_interest_rate) ** number_of_payments - Decimal('1'))
+                getcontext().prec = 10
+                emi_amount = (Decimal(amount) * monthly_interest_rate * (
+                        Decimal('1') + monthly_interest_rate) ** number_of_payments) / \
+                             ((Decimal('1') + monthly_interest_rate) ** number_of_payments - Decimal('1'))
                 if emi_amount.quantize(Decimal('1.00')) > Decimal('99999999.99'):
                     # Handle overflow or adjust precision/scale
                     emi_amount = Decimal('99999999.99')
 
                 home_loan.emi_amount = round(emi_amount, 2)
-                
+
                 if self.user:
                     home_loan.user = self.user
 
@@ -111,13 +113,16 @@ class HomeLoanForm(forms.ModelForm):
             logging.error(f"Failed to save Home Loan form: {e}")
             self.add_error(None, f"Failed to process the form due to a system error: {e}")
 
+
 # =============================== Education Loan Forms ============================================
 class StudentInfoForm(forms.ModelForm):
-    date_of_birth = forms.DateTimeField(label="Date of Birth", required=True, widget=NumberInput(attrs={'type':'date'}))
+    date_of_birth = forms.DateTimeField(label="Date of Birth", required=True,
+                                        widget=NumberInput(attrs={'type': 'date'}))
+
     class Meta:
         model = StudentInfo
         fields = '__all__'
-            
+
 
 class EducationLoanForm(ModelForm):
     university = forms.ModelChoiceField(
@@ -133,7 +138,8 @@ class EducationLoanForm(ModelForm):
 
     class Meta:
         model = EducationLoan
-        fields = get_fields(LoanForm.Meta) +  ['university', 'graduation_date', 'degree', 'college_id', 'first_name', 'last_name', 'email', 'phone', 'date_of_birth']
+        fields = get_fields(LoanForm.Meta) + ['university', 'graduation_date', 'degree', 'college_id', 'first_name',
+                                              'last_name', 'email', 'phone', 'date_of_birth']
         # Add widgets and labels as needed here
         widgets = {
             'graduation_date': DateInput(attrs={
@@ -159,11 +165,11 @@ class EducationLoanForm(ModelForm):
             'degree': 'Type of Degree',
             'college_id': 'College Identifier'
         }
-        
+
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super(EducationLoanForm, self).__init__(*args, **kwargs)
-        
+
     def save(self, commit=True):
         if not commit:
             raise ValueError("Cannot save without committing the transaction")
@@ -172,14 +178,14 @@ class EducationLoanForm(ModelForm):
         try:
             with transaction.atomic():  # Use atomic to ensure all or nothing is saved
                 # Create or update the student information
-                
+
                 student = StudentInfo.objects.create(
-                            first_name=self.cleaned_data['first_name'],
-                            last_name=self.cleaned_data['last_name'],
-                            date_of_birth=self.cleaned_data['date_of_birth'],
-                            email=self.cleaned_data['email'],
-                            phone=self.cleaned_data['phone']
-                        )
+                    first_name=self.cleaned_data['first_name'],
+                    last_name=self.cleaned_data['last_name'],
+                    date_of_birth=self.cleaned_data['date_of_birth'],
+                    email=self.cleaned_data['email'],
+                    phone=self.cleaned_data['phone']
+                )
 
                 education_loan.student_info = student
                 if hasattr(self, 'user') and self.user:
@@ -201,13 +207,15 @@ class EducationLoanForm(ModelForm):
                 monthly_interest_rate = interest_rate / 12
                 number_of_payments = tenure * 12  # assuming tenure is in years
 
-                emi_amount = (Decimal(amount) * monthly_interest_rate * (Decimal('1') + monthly_interest_rate) ** number_of_payments) / \
+                emi_amount = (Decimal(amount) * monthly_interest_rate * (
+                        Decimal('1') + monthly_interest_rate) ** number_of_payments) / \
                              ((Decimal('1') + monthly_interest_rate) ** number_of_payments - Decimal('1'))
 
-                education_loan.emi_amount = emi_amount.quantize(Decimal('1.00')) if emi_amount <= Decimal('99999999.99') else Decimal('99999999.99')
-                
+                education_loan.emi_amount = emi_amount.quantize(Decimal('1.00')) if emi_amount <= Decimal(
+                    '99999999.99') else Decimal('99999999.99')
+
                 education_loan.save()  # Now commit the saved loan
-                
+
         except Exception as e:
             logging.error(f"Failed to save Education Loan form: {e}")
             self.add_error(None, f"Failed to process the form due to a system error: {e}")

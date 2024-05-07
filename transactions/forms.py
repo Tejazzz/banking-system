@@ -1,13 +1,11 @@
-import datetime
-
 from django import forms
 from django.conf import settings
+from django.utils.timezone import localdate
 
 from .models import Transaction
 
 
 class TransactionForm(forms.ModelForm):
-
     class Meta:
         model = Transaction
         fields = [
@@ -16,53 +14,45 @@ class TransactionForm(forms.ModelForm):
         ]
 
     def __init__(self, *args, **kwargs):
-        self.account = kwargs.pop('account')
+        self.account = kwargs.pop('account', None)
         super().__init__(*args, **kwargs)
-
         self.fields['transaction_type'].disabled = True
         self.fields['transaction_type'].widget = forms.HiddenInput()
 
-    def save(self, commit=True):
-        self.instance.account = self.account
-        self.instance.balance_after_transaction = self.account.balance
-        return super().save()
-
 
 class DepositForm(TransactionForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set the transaction type to "DEPOSIT" and make sure it's not editable or visible
+        self.initial['transaction_type'] = "DEPOSIT"
+        self.fields['transaction_type'].disabled = True
+        self.fields['transaction_type'].widget = forms.HiddenInput()
 
     def clean_amount(self):
         min_deposit_amount = settings.MINIMUM_DEPOSIT_AMOUNT
         amount = self.cleaned_data.get('amount')
-
         if amount < min_deposit_amount:
             raise forms.ValidationError(
                 f'You need to deposit at least {min_deposit_amount} $'
             )
-
         return amount
 
 
 class WithdrawForm(TransactionForm):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set the transaction type to "WITHDRAW" and make sure it's not editable or visible
+        self.initial['transaction_type'] = "WITHDRAWAL"
+        self.fields['transaction_type'].disabled = True
+        self.fields['transaction_type'].widget = forms.HiddenInput()
+
     def clean_amount(self):
         account = self.account
-        min_withdraw_amount = settings.MINIMUM_WITHDRAWAL_AMOUNT
-        max_withdraw_amount = (
-            account.account_type.maximum_withdrawal_amount
-        )
+
         balance = account.balance
 
         amount = self.cleaned_data.get('amount')
-
-        if amount < min_withdraw_amount:
-            raise forms.ValidationError(
-                f'You can withdraw at least {min_withdraw_amount} $'
-            )
-
-        if amount > max_withdraw_amount:
-            raise forms.ValidationError(
-                f'You can withdraw at most {max_withdraw_amount} $'
-            )
 
         if amount > balance:
             raise forms.ValidationError(
@@ -73,21 +63,16 @@ class WithdrawForm(TransactionForm):
         return amount
 
 
-class TransactionDateRangeForm(forms.Form):
-    daterange = forms.CharField(required=False)
+class DateRangeForm(forms.Form):
+    start_date = forms.DateField(label='Start Date', widget=forms.DateInput(attrs={'type': 'date'}), initial=localdate)
+    end_date = forms.DateField(label='End Date', widget=forms.DateInput(attrs={'type': 'date'}), initial=localdate)
 
-    def clean_daterange(self):
-        daterange = self.cleaned_data.get("daterange")
-        print(daterange)
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
 
-        try:
-            daterange = daterange.split(' - ')
-            print(daterange)
-            if len(daterange) == 2:
-                for date in daterange:
-                    datetime.datetime.strptime(date, '%Y-%m-%d')
-                return daterange
-            else:
-                raise forms.ValidationError("Please select a date range.")
-        except (ValueError, AttributeError):
-            raise forms.ValidationError("Invalid date range")
+        if start_date and end_date:
+            if start_date > end_date:
+                raise forms.ValidationError("End date should be greater than start date.")
+        return cleaned_data

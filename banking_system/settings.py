@@ -1,15 +1,14 @@
-
+import logging
+import os
 from pathlib import Path
+
 import yaml
-import os, logging
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
 # Setting up basic configuration
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
@@ -22,8 +21,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-LOGIN_REDIRECT_URL = '/transactions/report'
-
+LOGIN_REDIRECT_URL = 'user_home'
 
 # Application definition
 
@@ -35,6 +33,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.humanize',
     'django.contrib.staticfiles',
+
+    'django_extensions',
 
     'django_celery_beat',
 
@@ -82,7 +82,8 @@ WSGI_APPLICATION = 'banking_system.wsgi.application'
 def load_config():
     with open(os.path.join(BASE_DIR, 'config.yml'), 'r') as file:
         return yaml.safe_load(file)
-    
+
+
 config = load_config()
 
 DATABASES = {
@@ -95,7 +96,6 @@ DATABASES = {
         'PORT': config['database']['PORT'],
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
@@ -115,7 +115,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/3.1/topics/i18n/
 
@@ -129,7 +128,6 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
@@ -140,9 +138,9 @@ MINIMUM_DEPOSIT_AMOUNT = 10
 MINIMUM_WITHDRAWAL_AMOUNT = 10
 
 STATIC_URL = 'static/'
-STATICFILES_DIRS = [ 
+STATICFILES_DIRS = [
     BASE_DIR / "static",
-    ]
+]
 
 # Celery Settings
 CELERY_BROKER_URL = 'redis://localhost:6379'

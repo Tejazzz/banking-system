@@ -1,14 +1,12 @@
 from django import forms
-from django.conf import settings
 from django.contrib.auth.forms import UserCreationForm
 from django.db import transaction
 
-from .models import User, UserAddress
 from .constants import GENDER_CHOICE
+from .models import User, UserAddress
 
 
 class UserAddressForm(forms.ModelForm):
-
     class Meta:
         model = UserAddress
         fields = [
@@ -16,7 +14,7 @@ class UserAddressForm(forms.ModelForm):
             'city',
             'postal_code',
             'country'
-        ] 
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -33,11 +31,10 @@ class UserAddressForm(forms.ModelForm):
 
 
 class UserRegistrationForm(UserCreationForm):
-
     gender = forms.ChoiceField(choices=GENDER_CHOICE)
-    birth_date = forms.DateField(widget=forms.DateInput(attrs={'type':'date'}))
-    first_name = forms.CharField(widget=forms.TextInput(attrs={'autofocus':'on'}))
-    email = forms.CharField(widget=forms.EmailInput(attrs={'autofocus':'off'}))
+    birth_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    first_name = forms.CharField(widget=forms.TextInput(attrs={'autofocus': 'on'}))
+    email = forms.CharField(widget=forms.EmailInput(attrs={'autofocus': 'off'}))
 
     class Meta:
         model = User

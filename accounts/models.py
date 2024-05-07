@@ -1,13 +1,10 @@
-from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import (MinValueValidator, MaxValueValidator,)
 from django.db import models
-from django.db.models import Max
+from django.utils import timezone
 
-from .constants import GENDER_CHOICE, ACCOUNT_TYPES
+from .constants import ACCOUNT_TYPES
 from .managers import UserManager
 
-from decimal import Decimal
 
 class User(AbstractUser):
     username = None
@@ -26,7 +23,8 @@ class User(AbstractUser):
         if hasattr(self, 'account'):
             return self.account.balance
         return 0
-    
+
+
 class UserAddress(models.Model):
     user = models.OneToOneField(
         User,
@@ -40,7 +38,8 @@ class UserAddress(models.Model):
 
     def __str__(self):
         return self.user.email
-    
+
+
 # ==================================== Bank Accounts =========================================
 class BankAccount(models.Model):
     # user = models.OneToOneField(
@@ -57,7 +56,7 @@ class BankAccount(models.Model):
         decimal_places=2
     )
     account_type = models.CharField(choices=ACCOUNT_TYPES, default='CHECKING')
-    
+
 
 class CheckingBankAccount(BankAccount):
     service_charge = models.DecimalField(
@@ -65,13 +64,14 @@ class CheckingBankAccount(BankAccount):
         max_digits=12,
         decimal_places=2
     )
-    
+
     def deduct_service_charge(self):
         """
         Deducts service charge from the account balance
         """
         self.balance -= self.service_charge
         self.save()
+
 
 class SavingsBankAccount(BankAccount):
     interest_rate = models.DecimalField(
@@ -80,7 +80,7 @@ class SavingsBankAccount(BankAccount):
         decimal_places=2,
         help_text="Annual interest rate in percentage"
     )
-    
+
     def add_interest(self):
         """
         Adds interest to the account balance based on the interest rate
@@ -89,8 +89,6 @@ class SavingsBankAccount(BankAccount):
         interest_amount = (monthly_interest_rate / 100) * self.balance
         self.balance += interest_amount
         self.save()
-
-
 
 # class BankAccountType(models.Model):
 #     name = models.CharField(max_length=128)
@@ -169,6 +167,3 @@ class SavingsBankAccount(BankAccount):
 #         )
 #         start = self.interest_start_date.month
 #         return [i for i in range(start, 13, interval)]
-
-
-

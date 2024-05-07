@@ -1,134 +1,99 @@
-from dateutil.relativedelta import relativedelta
-
-from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
-from django.utils import timezone
-from django.views.generic import CreateView, ListView
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+from django.views import View
+from django.views.generic import ListView
 
-from transactions.constants import DEPOSIT, WITHDRAWAL
-from transactions.forms import (
-    DepositForm,
-    TransactionDateRangeForm,
-    WithdrawForm,
-)
-from transactions.models import Transaction
+from accounts.models import BankAccount
+from transactions.forms import DepositForm, WithdrawForm, DateRangeForm
+from .models import Transaction
 
 
-class TransactionRepostView(LoginRequiredMixin, ListView):
-    template_name = 'transactions/transaction_report.html'
-    model = Transaction
-    form_data = {}
+class DepositView(LoginRequiredMixin, View):
+    template_name = 'transactions/deposit.html'
+    form_class = DepositForm
 
-    def get(self, request, *args, **kwargs):
-        form = TransactionDateRangeForm(request.GET or None)
+    def get(self, request, account_no):
+        account = get_object_or_404(BankAccount, pk=account_no)
+        form = self.form_class(account=account)
+        return render(request, self.template_name, {'form': form, 'account': account})
+
+    def post(self, request, account_no):
+        account = get_object_or_404(BankAccount, pk=account_no)
+        form = self.form_class(request.POST, account=account)
         if form.is_valid():
-            self.form_data = form.cleaned_data
+            deposit_amount = form.cleaned_data['amount']
+            new_balance = account.balance + deposit_amount
+            transaction = Transaction(
+                account=account,
+                amount=deposit_amount,
+                balance_after_transaction=new_balance,
+                transaction_type="DEPOSIT"
+            )
+            transaction.save()
+            account.balance = new_balance
+            account.save()
+            return redirect(reverse('accounts:accounts_home'))
+        else:
+            print("Form errors:", form.errors)  # Debug to see what errors are occurring
+        return render(request, self.template_name, {'form': form, 'account': account})
 
-        return super().get(request, *args, **kwargs)
+
+class WithdrawView(LoginRequiredMixin, View):
+    template_name = 'transactions/withdraw.html'
+    form_class = WithdrawForm
+
+    def get(self, request, account_no):
+        account = get_object_or_404(BankAccount, pk=account_no)
+        form = self.form_class(account=account)
+        return render(request, self.template_name, {'form': form, 'account': account})
+
+    def post(self, request, account_no):
+        account = get_object_or_404(BankAccount, pk=account_no)
+        form = self.form_class(request.POST, account=account)
+        if form.is_valid():
+            withdraw_amount = form.cleaned_data['amount']
+            new_balance = account.balance - withdraw_amount
+            transaction = Transaction(
+                account=account,
+                amount=withdraw_amount,
+                balance_after_transaction=new_balance,
+                transaction_type="WITHDRAW"
+            )
+            transaction.save()
+            account.balance = new_balance
+            account.save()
+            return redirect(reverse('accounts:accounts_home'))
+        else:
+            print("Form errors:", form.errors)  # Debug to see what errors are occurring
+        return render(request, self.template_name, {'form': form, 'account': account})
+
+
+class TransactionListView(ListView):
+    model = Transaction
+    template_name = 'transactions/transaction_list.html'
+    context_object_name = 'transactions'
+    paginate_by = 5  # Adjust the number as needed
 
     def get_queryset(self):
-        queryset = super().get_queryset().filter(
-            account=self.request.user.account
-        )
+        queryset = super().get_queryset()
+        account_no = self.kwargs.get('account_no')  # Assumes 'account_number' is captured from URL
 
-        daterange = self.form_data.get("daterange")
+        # Filter by account number
+        if account_no:
+            account = get_object_or_404(BankAccount, account_no=account_no)
+            queryset = queryset.filter(account=account)
 
-        if daterange:
-            queryset = queryset.filter(timestamp__date__range=daterange)
-
-        return queryset.distinct()
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update({
-            'account': self.request.user.account,
-            'form': TransactionDateRangeForm(self.request.GET or None)
-        })
-
-        return context
-
-
-class TransactionCreateMixin(LoginRequiredMixin, CreateView):
-    template_name = 'transactions/transaction_form.html'
-    model = Transaction
-    title = ''
-    success_url = reverse_lazy('transactions:transaction_report')
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs.update({
-            'account': self.request.user.account
-        })
-        return kwargs
+        form = DateRangeForm(self.request.GET or None)
+        if form.is_valid():
+            start_date = form.cleaned_data.get('start_date')
+            end_date = form.cleaned_data.get('end_date')
+            if start_date and end_date:
+                queryset = queryset.filter(timestamp__date__range=(start_date, end_date))
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update({
-            'title': self.title
-        })
-
+        context['date_form'] = DateRangeForm(self.request.GET or None)
+        context['account_no'] = self.kwargs.get('account_no', None)
         return context
-
-
-class DepositMoneyView(TransactionCreateMixin):
-    form_class = DepositForm
-    title = 'Deposit Money to Your Account'
-
-    def get_initial(self):
-        initial = {'transaction_type': DEPOSIT}
-        return initial
-
-    def form_valid(self, form):
-        amount = form.cleaned_data.get('amount')
-        account = self.request.user.account
-
-        if not account.initial_deposit_date:
-            now = timezone.now()
-            next_interest_month = int(
-                12 / account.account_type.interest_calculation_per_year
-            )
-            account.initial_deposit_date = now
-            account.interest_start_date = (
-                now + relativedelta(
-                    months=+next_interest_month
-                )
-            )
-
-        account.balance += amount
-        account.save(
-            update_fields=[
-                'initial_deposit_date',
-                'balance',
-                'interest_start_date'
-            ]
-        )
-
-        messages.success(
-            self.request,
-            f'{"{:,.2f}".format(float(amount))}$ was deposited to your account successfully'
-        )
-
-        return super().form_valid(form)
-
-
-class WithdrawMoneyView(TransactionCreateMixin):
-    form_class = WithdrawForm
-    title = 'Withdraw Money from Your Account'
-
-    def get_initial(self):
-        initial = {'transaction_type': WITHDRAWAL}
-        return initial
-
-    def form_valid(self, form):
-        amount = form.cleaned_data.get('amount')
-
-        self.request.user.account.balance -= form.cleaned_data.get('amount')
-        self.request.user.account.save(update_fields=['balance'])
-
-        messages.success(
-            self.request,
-            f'Successfully withdrawn {"{:,.2f}".format(float(amount))}$ from your account'
-        )
-
-        return super().form_valid(form)

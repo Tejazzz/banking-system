@@ -1,0 +1,31 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block head_title %}
+    Deposit Money
+{% endblock %}
+
+{% block content %}
+    <div class="container mx-auto mt-10">
+        <div class="max-w-lg mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
+            <div class="md:flex">
+                <div class="p-8">
+                    <div class="uppercase tracking-wide text-sm text-indigo-500 font-semibold">Deposit into Account</div>
+                    <h2 class="block mt-1 text-lg leading-tight font-medium text-black">Account Number: {{ account.account_no }}</h2>
+                    <p class="mt-2 text-gray-500">Current Balance: ${{ account.balance }}</p>
+                    <p class="text-gray-500">Account Type: {{ account.account_type }}</p>
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label for="amount" class="block text-gray-700 text-sm font-bold mb-2">Amount:</label>
+                            <input type="number" name="amount" id="amount" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" aria-label="Deposit amount">
+                        </div>
+                        <button type="submit" class="py-2 px-4 bg-green-500 hover:bg-green-700 text-white font-bold rounded-lg transition duration-300">
+                            Deposit
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
