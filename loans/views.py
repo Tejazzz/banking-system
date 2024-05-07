@@ -196,24 +196,7 @@ def save_insurance(request):
         return HttpResponse(insurance.id, insurance.number)
     
     
-# ========================= University Post API View ========================================
-@csrf_exempt
-def add_university(request):
-    if request.method == 'POST':
-        
-        body_unicode = request.body.decode('utf-8')
-        body = json.loads(body_unicode)
-        
-        insurance = Insurance()
-        
-        insurance.number = body.get('number')
-        insurance.company = body.get('company')
-        insurance.premium = body.get('premium')
-        
-        insurance.save()
-            
-        return HttpResponse(insurance.id, insurance.number)
-    
+# ========================= University Post API View =======================================
 @csrf_exempt
 def add_universities(request):
     try:
