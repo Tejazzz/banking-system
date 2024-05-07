@@ -1,39 +1,36 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic.edit import FormView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
-from formtools.wizard.views import SessionWizardView, TemplateView
-from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse, HttpResponseRedirect
-from django.views.generic import CreateView, ListView, UpdateView
-from django.db import transaction
-from django.contrib import messages
-from django.db.models import Max
-
-from .forms import LoanForm, HomeLoanForm, EducationLoanForm, AddressForm
-from .models import Insurance, Loan, University
-
-from django.http import JsonResponse, HttpResponseBadRequest
-from django.views.decorators.http import require_http_methods
-
 import json
+
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
+from django.db.models import Max
+from django.http import HttpResponse, HttpResponseRedirect
+from django.http import JsonResponse, HttpResponseBadRequest
+from django.shortcuts import render
+from django.urls import reverse_lazy
+from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import CreateView, ListView, UpdateView
+from django.views.generic.edit import FormView
+
+from .forms import LoanForm, HomeLoanForm, EducationLoanForm
+from .models import Insurance, Loan, University
 
 
 # ========================= Home Page for loans View ========================================
 def loan_application(request):
-    
     context = {}
-    return render(request, 'loans/loan_home.html', context)
+    return render(request, 'loans/loans_apply.html', context)
+
 
 # =========================== Personal Loan Views ===========================================
 class PersonalLoanCreateView(LoginRequiredMixin, CreateView):
     model = Loan
     form_class = LoanForm
     template_name = 'loans/personal_loan_form.html'
-    success_url = reverse_lazy('loans:loans_list')  # Redirect to loan list view after a loan is successfully created
-    
+    success_url = reverse_lazy('loans:loan_home')  # Redirect to loan list view after a loan is successfully created
+
     def get(self, request):
-        ''' 
+        '''
         This method is called for GET requests
         '''
         if request.user.is_authenticated:
@@ -49,13 +46,12 @@ class PersonalLoanCreateView(LoginRequiredMixin, CreateView):
         with transaction.atomic():
             form.instance.user = self.request.user
             return super().form_valid(form)  # Saves the form instance, form.save() is called here
-        
+
     def form_invalid(self, form):
         ''' Adding an error message '''
         messages.error(self.request, "Error submitting the personal loan application. Please check the form.")
         return super().form_invalid(form)
-        
-    
+
     def get_form_kwargs(self):
         """
         Pass additional kwargs to the form instance. Useful for passing the request object or other variables.
@@ -64,11 +60,12 @@ class PersonalLoanCreateView(LoginRequiredMixin, CreateView):
         kwargs['user'] = self.request.user
         return kwargs
 
+
 class LoanListView(ListView):
     model = Loan
-    template_name = 'loans/loan_list.html'
+    template_name = 'loans/loans_home.html'
     context_object_name = 'loans'  # context name to use in the template
-    
+
     def get_queryset(self):
         """
         Override to return all loans (including specific types like HomeLoan and EducationLoan)
@@ -89,14 +86,14 @@ class PersonalLoanUpdateView(UpdateView):
         ''' Method is called when valid form data has been posted. '''
         response = super().form_valid(form)  # Saves the form instance
         return response
-    
+
 
 # =========================== Home Loan Views ===========================================
 class HomeLoanCreateView(LoginRequiredMixin, FormView):
     template_name = 'loans/home_loan_form.html'
     form_class = HomeLoanForm
-    success_url = reverse_lazy('loans:loans_list') # Redirect to this URL after successful form submission
-    
+    success_url = reverse_lazy('loans:loan_home')  # Redirect to this URL after successful form submission
+
     def get(self, request):
         ''' 
         This method is called for GET requests
@@ -115,7 +112,7 @@ class HomeLoanCreateView(LoginRequiredMixin, FormView):
             response = super().form_valid(form)
             form.save()
         return HttpResponseRedirect(self.get_success_url())
-    
+
     def form_invalid(self, form):
         ''' Adding an error message '''
         print(form.errors)
@@ -126,7 +123,7 @@ class HomeLoanCreateView(LoginRequiredMixin, FormView):
         # messages.error(self.request, "Error submitting the home loan application. Please check the form.")
         response = super().form_invalid(form)
         return HttpResponseRedirect(reverse_lazy('loans:apply_home_loan'))
-    
+
     def get_form_kwargs(self):
         """
         Pass additional kwargs to the form instance. Useful for passing the request object or other variables.
@@ -134,20 +131,13 @@ class HomeLoanCreateView(LoginRequiredMixin, FormView):
         kwargs = super(HomeLoanCreateView, self).get_form_kwargs()
         kwargs['user'] = self.request.user
         return kwargs
-    
-    
-class HomeLoanSuccessView(LoginRequiredMixin, TemplateView):
-    template_name = 'loans/home_loan_success.html'
-    
-    def get(self, request):
-        return render(request, self.template_name)
-    
+
 
 # =========================== Education Loan Views ========================================
 class EducationLoanCreateView(LoginRequiredMixin, FormView):
     template_name = 'loans/education_loan_form.html'
     form_class = EducationLoanForm
-    success_url = reverse_lazy('loans:loans_list')  # Ensure this is the correct URL for redirect after success
+    success_url = reverse_lazy('loans:loan_home')  # Ensure this is the correct URL for redirect after success
 
     def get(self, request):
         ''' Handles GET requests '''
@@ -176,44 +166,44 @@ class EducationLoanCreateView(LoginRequiredMixin, FormView):
         kwargs = super(EducationLoanCreateView, self).get_form_kwargs()
         kwargs['user'] = self.request.user
         return kwargs
-        
+
+
 # ========================= Insurance Post API View ========================================
 @csrf_exempt
 def save_insurance(request):
     if request.method == 'POST':
-        
         body_unicode = request.body.decode('utf-8')
         body = json.loads(body_unicode)
-        
+
         insurance = Insurance()
-        
+
         insurance.number = body.get('number')
         insurance.company = body.get('company')
         insurance.premium = body.get('premium')
-        
+
         insurance.save()
-            
+
         return HttpResponse(insurance.id, insurance.number)
-    
-    
+
+
 # ========================= University Post API View ========================================
 @csrf_exempt
 def add_university(request):
     if request.method == 'POST':
-        
         body_unicode = request.body.decode('utf-8')
         body = json.loads(body_unicode)
-        
+
         insurance = Insurance()
-        
+
         insurance.number = body.get('number')
         insurance.company = body.get('company')
         insurance.premium = body.get('premium')
-        
+
         insurance.save()
-            
+
         return HttpResponse(insurance.id, insurance.number)
-    
+
+
 @csrf_exempt
 def add_universities(request):
     try:
@@ -222,7 +212,8 @@ def add_universities(request):
             if not isinstance(data, list):
                 return HttpResponseBadRequest("Expected a list of data.")
 
-            last_code = University.objects.all().aggregate(Max('code'))['code__max'] or 1000  # Start from 1000 to increment to 1001 next
+            last_code = University.objects.all().aggregate(Max('code'))[
+                            'code__max'] or 1000  # Start from 1000 to increment to 1001 next
 
             universities = []
             for uni_data in data:
@@ -233,8 +224,9 @@ def add_universities(request):
 
             University.objects.bulk_create(universities)
             response_data = [{"name": uni.name, "code": uni.code} for uni in universities]
-            return JsonResponse({"message": "Universities added successfully.", "universities": response_data}, status=201)
-    
+            return JsonResponse({"message": "Universities added successfully.", "universities": response_data},
+                                status=201)
+
     except json.JSONDecodeError:
         return HttpResponseBadRequest("Invalid JSON")
     except Exception as e:

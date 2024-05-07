@@ -1,19 +1,33 @@
-{% extends 'core/base.html' %} {% load static %} {% block head_title %}Banking System{% endblock %} {% block content %}
-<div class="container mx-auto flex flex-col md:flex-row items-center my-12 md:my-24">
+{% extends 'core/base.html' %}
+{% load static %}
+{% block head_title %}SAFE Bank{% endblock %}
 
-    <div class="w-full lg:w-1/2 lg:py-6 text-center">
-        <h1 style="font-size: 12rem" class="font-black text-blue-900 text-opacity-50"></h1>
-    </div>
-    <div class="flex flex-col w-full lg:w-1/2 justify-center items-start pt-12 pb-24 px-6 bg-white rounded-2xl bg-opacity-70">
-        <h1 class="font-bold text-4xl my-4">Online Banking System</h1>
-        <p class="leading-normal mb-4">
+{% block content %}
+    <div class="container mx-auto flex flex-col md:flex-row items-center my-12 md:my-24">
 
+        <!-- Logo and Welcome Section -->
+        <div class="w-full lg:w-1/2 py-6 text-center">
+            <!-- Placeholder for a logo if needed -->
+            <img src="{% static 'images/logo.webp' %}" alt="SAFE Bank Logo" class="mx-auto w-48 h-auto">
+            <h1 class="text-5xl font-bold text-blue-900 my-4">Welcome to SAFE Bank</h1>
+            <p class="text-lg text-gray-600">Your trusted partner in personal and business banking.</p>
+        </div>
 
-        </p>
-        <div class="flex justify-end w-full">
-            <a href="{% url 'accounts:user_registration' %}" class="bg-blue-900 text-white rounded-none hover:bg-white hover:text-blue-900 hover:border-blue-900 shadow hover:shadow-lg py-2 px-4 border border-gray-900 hover:border-transparent">Register</a>
+        <!-- Registration and Information Section -->
+        <div class="w-full lg:w-1/2 flex flex-col justify-center items-start pt-12 pb-24 px-6 bg-white rounded-2xl shadow-md">
+            <h2 class="text-4xl font-bold my-4">Online Banking System</h2>
+            <p class="text-base leading-relaxed mb-4">
+                Experience seamless and secure access to your savings, checking accounts, and loans, including student
+                loans, home loans, and personal loans. Manage all your banking needs with just a few clicks.
+            </p>
+            <div class="flex space-x-4">
+                <a href="{% url 'accounts:user_registration' %}"
+                   class="bg-blue-900 text-white rounded-lg py-2 px-4 hover:bg-white hover:text-blue-900 hover:border-blue-900 border border-blue-900 hover:shadow-lg transition-all duration-300 ease-in-out">Register</a>
+                <a href="{% url 'accounts:user_login' %}"
+                   class="text-blue-900 bg-transparent border border-blue-900 rounded-lg py-2 px-4 hover:bg-blue-900 hover:text-white transition-all duration-300 ease-in-out">Log
+                    In</a>
+            </div>
         </div>
     </div>
-</div>
 
 {% endblock %}

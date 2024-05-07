@@ -7,6 +7,6 @@ GENDER_CHOICE = (
 )
 
 ACCOUNT_TYPES = [
-        ('CHECKING', 'Checking'),
-        ('SAVINGS', 'Savings'),
-    ]
+    ('CHECKING', 'Checking'),
+    ('SAVINGS', 'Savings'),
+]

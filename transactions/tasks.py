@@ -1,15 +1,14 @@
 from django.utils import timezone
 
+from accounts.models import BankAccount
 from banking_system.celery import app
-
-from accounts.models import UserBankAccount
 from transactions.constants import INTEREST
 from transactions.models import Transaction
 
 
 @app.task(name="calculate_interest")
 def calculate_interest():
-    accounts = UserBankAccount.objects.filter(
+    accounts = BankAccount.objects.filter(
         balance__gt=0,
         interest_start_date__gte=timezone.now(),
         initial_deposit_date__isnull=False
@@ -40,6 +39,6 @@ def calculate_interest():
         Transaction.objects.bulk_create(created_transactions)
 
     if updated_accounts:
-        UserBankAccount.objects.bulk_update(
+        BankAccount.objects.bulk_update(
             updated_accounts, ['balance']
         )

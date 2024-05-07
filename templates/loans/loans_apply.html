@@ -16,7 +16,7 @@
                     <p class="mt-3 text-gray-600">Whether it's for a vacation, a wedding, or unexpected expenses, our
                         personal loan offers competitive rates and flexible terms.</p>
                 </div>
-                <button
+                <button onclick="location.href='{% url 'loans:apply_personal_loan' %}'"
                         class="mt-4 w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                     Apply for Personal Loan
                 </button>
@@ -48,7 +48,7 @@
         <div class="mt-12">
             <h2 class="text-3xl font-semibold text-center">Customer Testimonials</h2>
             <div class="mt-6 space-y-4">
-                <p class="bg-gray-100 p-4 rounded shadow">"Thanks to the personal loan from [Bank Name], I was able to
+                <p class="bg-gray-100 p-4 rounded shadow">"Thanks to the personal loan from SAFE Bank, I was able to
                     cover my emergency medical bills without any hassle." - Jane Doe</p>
                 <p class="bg-gray-100 p-4 rounded shadow">"The home loan process was smooth and the staff was very
                     helpful throughout. Highly recommend!" - John Smith</p>

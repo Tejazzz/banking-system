@@ -10,6 +10,7 @@ click-repl==0.3.0
 cron-descriptor==1.4.3
 Django==5.0.4
 django-celery-beat==2.6.0
+django-extensions==3.2.3
 django-formtools==2.5.1
 django-phonenumber-field==7.3.0
 django-phonenumbers==1.0.1
@@ -19,6 +20,8 @@ kombu==5.3.7
 phonenumbers==8.13.36
 prompt-toolkit==3.0.43
 psycopg2-binary==2.9.9
+pydotplus==2.0.2
+pyparsing==3.1.2
 python-crontab==3.0.0
 python-dateutil==2.9.0.post0
 PyYAML==6.0.1
