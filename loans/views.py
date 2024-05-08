@@ -190,7 +190,19 @@ class HomeLoanCreateView(LoginRequiredMixin, FormView):
         kwargs['user'] = self.request.user
         return kwargs
 
+class HomeLoanUpdateView(LoginRequiredMixin, UpdateView):
+    model = Loan
+    form_class = HomeLoanForm
+    template_name = 'loans/home_loan_update_form.html'
+    success_url = reverse_lazy('loans:loan_home')
 
+    def form_valid(self, form):
+        messages.success(self.request, "Home Loan updated successfully!")
+        return super().form_valid(form)
+
+    def get_queryset(self):
+        return Loan.objects.filter(user=self.request.user, loan_type='home')
+    
 # =========================== Education Loan Views ========================================
 class EducationLoanCreateView(LoginRequiredMixin, FormView):
     template_name = 'loans/education_loan_form.html'
@@ -220,7 +232,7 @@ class EducationLoanCreateView(LoginRequiredMixin, FormView):
                 return HttpResponseRedirect(self.get_success_url())
         except IntegrityError:
             messages.error(self.request, f"An unexpected error occurred while processing your {loan_type} loan application.")
-            return redirect('loans:apply_education_loan')  
+            return redirect('loans:apply_education_loan', )  
         
     def form_invalid(self, form):
         ''' Adding an error message '''
@@ -228,7 +240,7 @@ class EducationLoanCreateView(LoginRequiredMixin, FormView):
             for error in errors:
                 messages.error(self.request, f"{error}")
                 
-        return render(self.request, self.template_name, {'education_loan_form': form})
+        return render(self.request, self.template_name, {'form': form})
 
     def get_form_kwargs(self):
         ''' Pass additional kwargs to the form instance. '''

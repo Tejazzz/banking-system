@@ -48,7 +48,7 @@ class Loan(models.Model):
     def calculate_emi(self):
         P = self.amount
         r = self.interest_rate / Decimal('100.0') / Decimal('12.0')
-        n = self.tenure * 12  # Convert tenure to months
+        n = self.tenure
 
         if n > 0 and r > 0:
             emi = (P * r * (1 + r) ** n) / ((1 + r) ** n - 1)

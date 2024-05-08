@@ -1,6 +1,9 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.db import transaction
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+from datetime import timedelta
 
 from .constants import GENDER_CHOICE
 from .models import User, UserAddress
@@ -29,10 +32,16 @@ class UserAddressForm(forms.ModelForm):
                 )
             })
 
+def validate_age(value):
+    """ Validator to check if age is at least 18 years """
+    today = timezone.now().date()
+    age_18 = today - timedelta(days=18*365.25)  # Approximation including leap years
+    if value > age_18:
+        raise ValidationError("Customer must be at least 18 years old.")
 
 class UserRegistrationForm(UserCreationForm):
     gender = forms.ChoiceField(choices=GENDER_CHOICE)
-    birth_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    birth_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}), validators=[validate_age])
     first_name = forms.CharField(widget=forms.TextInput(attrs={'autofocus': 'on'}))
     email = forms.CharField(widget=forms.EmailInput(attrs={'autofocus': 'off'}))
 
@@ -64,19 +73,11 @@ class UserRegistrationForm(UserCreationForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.set_password(self.cleaned_data["password1"])
+        user.gender = self.cleaned_data.get('gender')
+        user.birth_date = self.cleaned_data.get('birth_date')
+        user.email = self.cleaned_data.get('email')
         if commit:
+            
             user.save()
-            gender = self.cleaned_data.get('gender')
-            birth_date = self.cleaned_data.get('birth_date')
-
-            # UserBankAccount.objects.create(
-            #     user=user,
-            #     gender=gender,
-            #     birth_date=birth_date,
-            #     account_type=account_type,
-            #     account_no=(
-            #         user.id +
-            #         settings.ACCOUNT_NUMBER_START_FROM
-            #     )
-            # )
+            
         return user

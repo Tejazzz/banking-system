@@ -1,10 +1,12 @@
-import logging
-from decimal import Decimal, getcontext
-
 from django import forms
 from django.db import transaction
 from django.forms import ModelForm
 from django.forms.widgets import NumberInput
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+from datetime import timedelta
+
+import logging
 
 from .constants import US_STATES
 from .models import Address, Loan, HomeLoan, EducationLoan, StudentInfo, University, Insurance
@@ -84,27 +86,6 @@ class HomeLoanForm(forms.ModelForm):
                 home_loan.insurance = insurance
                 home_loan.loan_type = 'home'
 
-                # Calculate EMI
-                amount = self.cleaned_data['amount']
-                tenure = self.cleaned_data['tenure']
-                interest_rate = Decimal('0.10')  # 10% annual interest rate
-                
-                amount = Decimal(amount)
-                tenure = Decimal(tenure)
-                
-                
-                getcontext().prec = 10
-                monthly_interest_rate = interest_rate / 12
-                number_of_payments = tenure  # tenure in months
-                emi_amount = (amount * monthly_interest_rate * (Decimal('1') + monthly_interest_rate) ** number_of_payments) / \
-                                ((Decimal('1') + monthly_interest_rate) ** number_of_payments - Decimal('1'))
-
-                # Output the EMI rounded to two decimal places
-                emi_amount = emi_amount.quantize(Decimal('1.00'), rounding='ROUND_HALF_UP')
-
-                print(emi_amount)
-                home_loan.emi_amount = emi_amount
-
                 if self.user:
                     home_loan.user = self.user
 
@@ -126,6 +107,20 @@ class StudentInfoForm(forms.ModelForm):
         fields = '__all__'
 
 
+def validate_age(value):
+    """ Validator to check if age is at least 16 years """
+    today = timezone.now().date()
+    age_16 = today - timedelta(days=16*365.25)  # Approximation including leap years
+    if value > age_16:
+        raise ValidationError("Student must be at least 16 years old.")
+
+def validate_graduation(value):
+    """ Validator to check if the graduation date is at least one year from today """
+    min_graduation_date = timezone.now().date() + timedelta(days=365)
+    if value < min_graduation_date:
+        raise ValidationError("Graduation date must be at least one year from today.")
+    
+
 class EducationLoanForm(ModelForm):
     university = forms.ModelChoiceField(
         queryset=University.objects.all().order_by('name'),
@@ -136,8 +131,8 @@ class EducationLoanForm(ModelForm):
     last_name = forms.CharField(max_length=100)
     email = forms.EmailField()
     phone = forms.CharField(max_length=15)
-    date_of_birth = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-    graduation_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    date_of_birth = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}), validators=[validate_age])
+    graduation_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}), validators=[validate_graduation])
 
     class Meta:
         model = EducationLoan
@@ -152,11 +147,10 @@ class EducationLoanForm(ModelForm):
         if not commit:
             raise ValueError("Cannot save without committing the transaction")
 
-        education_loan = super().save(commit=False)  # Do not commit yet
+        education_loan = super().save(commit=False) 
         try:
-            with transaction.atomic():  # Use atomic to ensure all or nothing is saved
-                # Create or update the student information
-
+            with transaction.atomic():
+        
                 education_loan.loan_type = 'education'
 
                 student = StudentInfo.objects.create(
@@ -171,28 +165,10 @@ class EducationLoanForm(ModelForm):
                 if hasattr(self, 'user') and self.user:
                     education_loan.user = self.user
 
-                # Set additional fields
                 education_loan.university = self.cleaned_data['university']
                 education_loan.graduation_date = self.cleaned_data['graduation_date']
                 education_loan.degree = self.cleaned_data['degree']
                 education_loan.college_id = self.cleaned_data['college_id']
-
-                # Assuming `amount` and `tenure` are part of EducationLoan model or form
-                amount = self.cleaned_data.get('amount')
-                tenure = self.cleaned_data.get('tenure')
-                interest_rate = Decimal('0.08')  # Assuming interest rate is fixed for simplification
-
-                # Calculate EMI
-                getcontext().prec = 10
-                monthly_interest_rate = interest_rate / 12
-                number_of_payments = tenure * 12  # assuming tenure is in years
-
-                emi_amount = (Decimal(amount) * monthly_interest_rate * (
-                        Decimal('1') + monthly_interest_rate) ** number_of_payments) / \
-                             ((Decimal('1') + monthly_interest_rate) ** number_of_payments - Decimal('1'))
-
-                education_loan.emi_amount = emi_amount.quantize(Decimal('1.00')) if emi_amount <= Decimal(
-                    '99999999.99') else Decimal('99999999.99')
 
                 education_loan.save()  # Now commit the saved loan
 
