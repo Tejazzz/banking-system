@@ -100,21 +100,10 @@ class HomeLoanForm(forms.ModelForm):
                                 ((Decimal('1') + monthly_interest_rate) ** number_of_payments - Decimal('1'))
 
                 # Output the EMI rounded to two decimal places
-                emi = emi_amount.quantize(Decimal('1.00'), rounding='ROUND_HALF_UP')
+                emi_amount = emi_amount.quantize(Decimal('1.00'), rounding='ROUND_HALF_UP')
 
-                
-                # monthly_interest_rate = interest_rate / 12
-                # number_of_payments = tenure  # tenure in months
-                # # EMI Formula: E = [P * r * (1+r)^n] / [(1+r)^n – 1]
-                # getcontext().prec = 10
-                # emi_amount = (Decimal(amount) * monthly_interest_rate * (
-                #         Decimal('1') + monthly_interest_rate) ** number_of_payments) / \
-                #              ((Decimal('1') + monthly_interest_rate) ** number_of_payments - Decimal('1'))
-                # if emi_amount.quantize(Decimal('1.00')) > Decimal('99999999.99'):
-                #     # Handle overflow or adjust precision/scale
-                #     emi_amount = Decimal('99999999.99')
                 print(emi_amount)
-                home_loan.emi_amount = emi
+                home_loan.emi_amount = emi_amount
 
                 if self.user:
                     home_loan.user = self.user
