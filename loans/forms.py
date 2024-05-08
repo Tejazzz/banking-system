@@ -1,11 +1,13 @@
+import logging
+from datetime import timedelta
+
 from django import forms
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.forms import ModelForm
 from django.forms.widgets import NumberInput
-from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
-from django.core.validators import MinValueValidator
 
 import logging
 
@@ -116,16 +118,17 @@ class StudentInfoForm(forms.ModelForm):
 def validate_age(value):
     """ Validator to check if age is at least 16 years """
     today = timezone.now().date()
-    age_16 = today - timedelta(days=16*365.25)  # Approximation including leap years
+    age_16 = today - timedelta(days=16 * 365.25)  # Approximation including leap years
     if value > age_16:
         raise ValidationError("Student must be at least 16 years old.")
+
 
 def validate_graduation(value):
     """ Validator to check if the graduation date is at least one year from today """
     min_graduation_date = timezone.now().date() + timedelta(days=365)
     if value < min_graduation_date:
         raise ValidationError("Graduation date must be at least one year from today.")
-    
+
 
 class EducationLoanForm(ModelForm):
     university = forms.ModelChoiceField(
@@ -153,10 +156,10 @@ class EducationLoanForm(ModelForm):
         if not commit:
             raise ValueError("Cannot save without committing the transaction")
 
-        education_loan = super().save(commit=False) 
+        education_loan = super().save(commit=False)
         try:
             with transaction.atomic():
-        
+
                 education_loan.loan_type = 'education'
 
                 student = StudentInfo.objects.create(
