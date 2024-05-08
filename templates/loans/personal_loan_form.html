@@ -1,61 +1,31 @@
-<!-- home_loan_form.html -->
-{% extends 'core/base.html' %} {% load static %}
+{% extends 'core/base.html' %}
+{% load static %}
 
-{% block head_title %}Personal Loan{% endblock %}
+{% block head_title %}
+    Apply for a Personal Loan
+{% endblock %}
 
 {% block content %}
-    <style>
-        .form-container {
-            background-color: #ffffff;
-            width: 100%;
-            max-width: 600px;
-            padding: 20px;
-            margin: 40px auto;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            border: 1px solid #ccc;
-        }
-
-        .form-container h2 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 20px;
-        }
-
-        .form-container form {
-            display: grid;
-            grid-gap: 15px;
-        }
-
-        .form-container input, .form-container select, .form-container button {
-            width: 100%;
-            padding: 12px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-        }
-
-        .form-container button {
-            background-color: #007BFF;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: background-color 0.3s ease-in-out;
-        }
-
-        .form-container button:hover {
-            background-color: #0056b3;
-        }
-    </style>
-    <div class="form-container">
-        <h2>Apply for a Personal Loan</h2>
-        <form method="post">
+    <div class="max-w-4xl mx-auto bg-white p-8 mt-10 shadow-lg rounded-lg border">
+        <h2 class="text-center text-2xl font-semibold text-gray-800 mb-6">Apply for a Personal Loan</h2>
+        <form method="post" class="space-y-6">
             {% csrf_token %}
-            {{ personal_loan_form.as_p }}
-            <button type="submit">Apply</button>
+            <!-- Loan Information Card -->
+            <div class="bg-gray-100 p-5 rounded-md shadow">
+                <h3 class="text-lg font-semibold mb-4">Loan Information</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <label for="amount" class="font-medium text-gray-700">Loan Amount:</label>
+                    {{ personal_loan_form.amount }}
+                    <label for="tenure" class="font-medium text-gray-700">Loan Tenure:</label>
+                    {{ personal_loan_form.tenure }}
+                </div>
+            </div>
+            <button type="submit"
+                    class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline">
+                Submit Application
+            </button>
         </form>
     </div>
 {% endblock %}
+
 

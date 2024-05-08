@@ -2,59 +2,58 @@
 {% load static %}
 
 {% block head_title %}
-    Education Loan
+    Education Loan Application
 {% endblock %}
 
 {% block content %}
-    <form method="post" action="" class="container mx-auto mt-8 p-5">
-        {% csrf_token %}
-        <div class="mb-8 p-5 shadow-lg rounded-lg bg-white">
-            <h2 class="text-xl font-semibold mb-6">Student Information</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Manually handle each field to apply Tailwind CSS -->
-                <div>
-                    <label class="block font-medium text-gray-700">First Name</label>
+    <div class="max-w-4xl mx-auto bg-white p-8 mt-10 shadow-lg rounded-lg border">
+        <h2 class="text-center text-2xl font-semibold text-gray-800 mb-6">Apply for Education Loan</h2>
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            <!-- Loan Information Card -->
+            <div class="bg-gray-100 p-5 rounded-md shadow">
+                <h3 class="text-lg font-semibold mb-4">Loan Information</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <label for="amount" class="font-medium text-gray-700">Loan Amount:</label>
+                    {{ form.amount }}
+                    <label for="tenure" class="font-medium text-gray-700">Loan Tenure:</label>
+                    {{ form.tenure }}
+                </div>
+            </div>
+            <!-- Student Information Card -->
+            <div class="bg-gray-100 p-5 rounded-md shadow">
+                <h3 class="text-lg font-semibold mb-4">Student Information</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <label for="first_name" class="font-medium text-gray-700">First Name:</label>
                     {{ form.first_name }}
-                </div>
-                <div>
-                    <label class="block font-medium text-gray-700">Middle Name</label>
-                    {{ form.middle_name }}
-                </div>
-                <div>
-                    <label class="block font-medium text-gray-700">Last Name</label>
+                    <label for="last_name" class="font-medium text-gray-700">Last Name:</label>
                     {{ form.last_name }}
-                </div>
-                <div>
-                    <label class="block font-medium text-gray-700">Date of Birth</label>
+                    <label for="date_of_birth" class="font-medium text-gray-700">Date of Birth:</label>
                     {{ form.date_of_birth }}
-                </div>
-                <div>
-                    <label class="block font-medium text-gray-700">Email</label>
+                    <label for="email" class="font-medium text-gray-700">Email:</label>
                     {{ form.email }}
-                </div>
-                <div>
-                    <label class="block font-medium text-gray-700">Phone</label>
+                    <label for="phone" class="font-medium text-gray-700">Phone:</label>
                     {{ form.phone }}
                 </div>
             </div>
-        </div>
-
-        <div class="mb-8 p-5 shadow-lg rounded-lg bg-white">
-            <h2 class="text-xl font-semibold mb-6">Loan Details</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {{ form.amount }}
-                {{ form.tenure }}
-                {{ form.university }}
-                {{ form.graduation_date }}
-                {{ form.degree }}
-                {{ form.college_id }}
+            <!-- University Information Card -->
+            <div class="bg-gray-100 p-5 rounded-md shadow">
+                <h3 class="text-lg font-semibold mb-4">University Information</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <label for="university" class="font-medium text-gray-700">University:</label>
+                    {{ form.university }}
+                    <label for="graduation_date" class="font-medium text-gray-700">Graduation Date:</label>
+                    {{ form.graduation_date }}
+                    <label for="degree" class="font-medium text-gray-700">Degree:</label>
+                    {{ form.degree }}
+                    <label for="college_id" class="font-medium text-gray-700">College ID:</label>
+                    {{ form.college_id }}
+                </div>
             </div>
-        </div>
-
-        <div class="flex justify-end mt-4">
-            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            <button type="submit"
+                    class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline">
                 Submit Application
             </button>
-        </div>
-    </form>
+        </form>
+    </div>
 {% endblock %}

@@ -3,7 +3,7 @@ from decimal import Decimal, getcontext
 
 from django import forms
 from django.db import transaction
-from django.forms import ModelForm, TextInput, DateInput
+from django.forms import ModelForm
 from django.forms.widgets import NumberInput
 
 from .constants import US_STATES
@@ -137,36 +137,12 @@ class EducationLoanForm(ModelForm):
     email = forms.EmailField()
     phone = forms.CharField(max_length=15)
     date_of_birth = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    graduation_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
 
     class Meta:
         model = EducationLoan
         fields = get_fields(LoanForm.Meta) + ['university', 'graduation_date', 'degree', 'college_id', 'first_name',
                                               'last_name', 'email', 'phone', 'date_of_birth']
-        # Add widgets and labels as needed here
-        widgets = {
-            'graduation_date': DateInput(attrs={
-                'type': 'date',
-                'class': 'form-control',
-                'placeholder': 'Graduation Date'
-            }),
-            'degree': TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Degree'
-            }),
-            'college_id': TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'College ID'
-            }),
-            'student_info': forms.Select(attrs={
-                'class': 'form-control',
-            })
-        }
-        labels = {
-            'student_info': 'Student Information',
-            'graduation_date': 'Graduation Date',
-            'degree': 'Type of Degree',
-            'college_id': 'College Identifier'
-        }
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
@@ -180,6 +156,8 @@ class EducationLoanForm(ModelForm):
         try:
             with transaction.atomic():  # Use atomic to ensure all or nothing is saved
                 # Create or update the student information
+
+                education_loan.loan_type = 'education'
 
                 student = StudentInfo.objects.create(
                     first_name=self.cleaned_data['first_name'],
