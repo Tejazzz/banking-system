@@ -21,7 +21,7 @@ app.autodiscover_tasks()
 
 app.conf.beat_schedule = {
     'calculate_interest': {
-        'task': 'calculate_interest',
+        'task': 'update_account_balances',
         # http://docs.celeryproject.org/en/latest/userguide/periodic-tasks.html
         'schedule': crontab(0, 0, day_of_month='1'),
     }

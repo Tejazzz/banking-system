@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
+from decimal import Decimal
 
 from .constants import ACCOUNT_TYPES
 from .managers import UserManager
@@ -42,11 +43,6 @@ class UserAddress(models.Model):
 
 # ==================================== Bank Accounts =========================================
 class BankAccount(models.Model):
-    # user = models.OneToOneField(
-    #     User,
-    #     related_name='account',
-    #     on_delete=models.CASCADE,
-    # )
     user = models.ForeignKey(User, related_name='account', on_delete=models.CASCADE)
     account_no = models.BigAutoField(primary_key=True, unique=True)
     date_opened = models.DateField(default=timezone.now)
@@ -66,11 +62,12 @@ class CheckingBankAccount(BankAccount):
     )
 
     def deduct_service_charge(self):
-        """
-        Deducts service charge from the account balance
-        """
-        self.balance -= self.service_charge
-        self.save()
+        '''Deducts service charge from the account balance and returns the deducted amount.'''
+        if self.balance > self.service_charge:  # Check to ensure balance is sufficient for deduction
+            self.balance -= self.service_charge
+            self.save()
+            return self.service_charge
+        return Decimal('0.00')
 
 
 class SavingsBankAccount(BankAccount):
@@ -82,13 +79,17 @@ class SavingsBankAccount(BankAccount):
     )
 
     def add_interest(self):
-        """
-        Adds interest to the account balance based on the interest rate
-        """
-        monthly_interest_rate = self.interest_rate / 12
-        interest_amount = (monthly_interest_rate / 100) * self.balance
+        '''Adds interest to the account balance based on the interest rate and returns the interest amount.'''
+        
+        monthly_interest_rate = self.interest_rate / 12 / 100
+        interest_amount = monthly_interest_rate * self.balance
         self.balance += interest_amount
         self.save()
+        return interest_amount
+
+
+
+
 
 # class BankAccountType(models.Model):
 #     name = models.CharField(max_length=128)

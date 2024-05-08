@@ -37,6 +37,9 @@ class Loan(models.Model):
         null=False
     )
     loan_type = models.CharField(choices=LOAN_TYPES, max_length=10, default='personal')
+    
+    class Meta:
+        unique_together = ('user', 'loan_type')
 
     def save(self, *args, **kwargs):
         self.calculate_emi()
