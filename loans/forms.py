@@ -179,6 +179,8 @@ class EducationLoanForm(ModelForm):
             with transaction.atomic():  # Use atomic to ensure all or nothing is saved
                 # Create or update the student information
 
+                education_loan.loan_type = 'education'
+
                 student = StudentInfo.objects.create(
                     first_name=self.cleaned_data['first_name'],
                     last_name=self.cleaned_data['last_name'],
@@ -222,12 +224,3 @@ class EducationLoanForm(ModelForm):
             raise
 
         return education_loan
-
-# class UniversityForm(forms.ModelForm):
-#     class Meta:
-#         model = University 
-#         fields = '__all__'
-#         widgets = {
-#             'name': forms.TextInput(attrs={'class': 'form-control'}),
-#             'code': forms.NumberInput(attrs={'class': 'form-control'}),
-#         }

@@ -4,49 +4,121 @@
 {% include 'core/messages.html' %}
 
 {% block content %}
-    <div class="container mx-auto mt-8">
-        <h2 class="text-2xl font-bold mb-4">Loan Details</h2>
+    <div class="container mx-auto mt-4">
+        <h2 class="text-xl font-bold mb-2">Loan Details</h2>
         <!-- Button to apply for a new loan -->
-        <div class="mb-4">
+        <div class="mb-2">
             <a href="{% url 'loans:apply_loan' %}"
-               class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+               class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded">
                 Apply for New Loan
             </a>
         </div>
         {% for loan in loans %}
-            <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-4">
-                <div class="px-4 py-5 sm:px-6">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">Loan ID: {{ loan.pk }}</h3>
-                    <p class="mt-1 max-w-2xl text-sm text-gray-500">Details about the loan.</p>
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-2">
+                <div class="px-4 py-3">
+                    <div class="grid grid-cols-3 gap-2 items-center">
+                        <!-- Column 1: Loan ID -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">Loan ID: {{ loan.pk }}</h3>
+                        </div>
+                        <!-- Column 2: Loan Type -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 uppercase">{{ loan.loan_type }} loan</h3>
+                        </div>
+                        <!-- Column 3: Loan Status with Dynamic Color -->
+                        <div class="text-lg font-bold text-white py-1 px-3 rounded"
+                             style="background-color: {% if loan.status == 'Approved' %}#10b981{% elif loan.status == 'Declined' %}#ef4444{% else %}#facc15{% endif %};">
+                            Status: {{ loan.status }}
+                        </div>
+                    </div>
                 </div>
+
                 <div class="border-t border-gray-200">
                     <dl>
-                        <div class="bg-gray-50 px-4 py-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="px-4 py-3 grid grid-cols-4 gap-2">
                             <div class="text-sm font-medium text-gray-500">Amount:</div>
-                            <div class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-1">${{ loan.amount }}</div>
+                            <div class="mt-1 text-sm text-gray-900">${{ loan.amount }}</div>
+
                             <div class="text-sm font-medium text-gray-500">Interest Rate:</div>
-                            <div class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-1">{{ loan.interest_rate }}%</div>
+                            <div class="mt-1 text-sm text-gray-900">{{ loan.interest_rate }}%</div>
+
                             <div class="text-sm font-medium text-gray-500">Tenure:</div>
-                            <div class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-1">{{ loan.tenure }} months</div>
+                            <div class="mt-1 text-sm text-gray-900">{{ loan.tenure }} months</div>
+
+                            <div class="text-sm font-medium text-gray-500">EMI Amount:</div>
+                            <div class="mt-1 text-sm text-gray-900">${{ loan.emi_amount }}</div>
                         </div>
-                        {% if loan.homeloan %}
-                            <div class="bg-white px-4 py-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div class="text-sm font-medium text-gray-500">Home Loan Address:</div>
-                                <div class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-1">{{ loan.homeloan.home_address }}</div>
+
+                        {% if loan.loan_type == 'home' %}
+                            <!-- Grid for Home Loan Details Cards -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 px-4 py-3">
+                                <!-- House Details Card -->
+                                <div class="bg-white rounded-lg shadow p-3">
+                                    <h3 class="text-lg font-semibold text-gray-800">House Details:</h3>
+                                    <ul class="mt-1 text-sm text-gray-700 list-disc list-inside">
+                                        <li>Year Built: {{ loan.homeloan.house_built_year }}</li>
+                                        <li>Insurance Company: {{ loan.homeloan.insurance.company }}</li>
+                                        <li>Insurance Premium: ${{ loan.homeloan.insurance.premium }}</li>
+                                    </ul>
+                                </div>
+
+                                <!-- Home Loan Address Card, now with grid layout -->
+                                <div class="bg-white rounded-lg shadow p-3">
+                                    <h3 class="text-lg font-semibold text-gray-800">Home Loan Address:</h3>
+                                    <div class="grid grid-cols-2 gap-1 mt-1 text-sm text-gray-700">
+                                        <div>Street:</div>
+                                        <div>{{ loan.homeloan.home_address.street }}</div>
+                                        <div>City:</div>
+                                        <div>{{ loan.homeloan.home_address.city }}</div>
+                                        <div>State:</div>
+                                        <div>{{ loan.homeloan.home_address.state }}</div>
+                                        <div>Country:</div>
+                                        <div>{{ loan.homeloan.home_address.country }}</div>
+                                        <div>ZIP:</div>
+                                        <div>{{ loan.homeloan.home_address.zip_code }}</div>
+                                    </div>
+                                </div>
                             </div>
                         {% endif %}
-                        {% if loan.educationloan %}
-                            <div class="bg-gray-50 px-4 py-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div class="text-sm font-medium text-gray-500">Education Loan University:</div>
-                                <div class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-1">{{ loan.educationloan.university.name }}</div>
+
+                        {% if loan.loan_type == 'education' %}
+                            <!-- Grid for Education Loan Details Cards -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 px-4 py-3">
+                                <!-- Education Details Card -->
+                                <div class="bg-white rounded-lg shadow p-3">
+                                    <h3 class="text-lg font-semibold text-gray-800">Education Details:</h3>
+                                    <ul class="mt-1 text-sm text-gray-700 list-disc list-inside">
+                                        <li>University: {{ loan.educationloan.university.name }}</li>
+                                        <li>Degree: {{ loan.educationloan.degree }}</li>
+                                        <li>Graduation
+                                            Date: {{ loan.educationloan.graduation_date | date:"Y-m-d" }}</li>
+                                    </ul>
+                                </div>
+
+                                <!-- Student Personal Information Card -->
+                                <div class="bg-white rounded-lg shadow p-3">
+                                    <h3 class="text-lg font-semibold text-gray-800">Student Information:</h3>
+                                    <div class="grid grid-cols-2 gap-1 mt-1 text-sm text-gray-700">
+                                        <div>First Name:</div>
+                                        <div>{{ loan.educationloan.student_info.first_name }}</div>
+                                        <div>Last Name:</div>
+                                        <div>{{ loan.educationloan.student_info.last_name }}</div>
+                                        <div>Date of Birth:</div>
+                                        <div>{{ loan.educationloan.student_info.date_of_birth | date:"Y-m-d" }}</div>
+                                        <div>Email:</div>
+                                        <div>{{ loan.educationloan.student_info.email }}</div>
+                                        <div>Phone:</div>
+                                        <div>{{ loan.educationloan.student_info.phone }}</div>
+                                    </div>
+                                </div>
                             </div>
                         {% endif %}
                     </dl>
                 </div>
             </div>
         {% empty %}
-            <div class="bg-white shadow overflow-hidden sm:rounded-lg p-4">
-                <p>No loans found.</p>
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg p-3">
+                <p>No loans found.</p
             </div>
         {% endfor %}
     </div>
