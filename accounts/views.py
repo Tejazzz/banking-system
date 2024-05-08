@@ -10,10 +10,12 @@ from django.shortcuts import HttpResponseRedirect, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
-from django.views.generic import TemplateView, RedirectView, View
+from django.views.generic import TemplateView, RedirectView, View, UpdateView, DeleteView
 
 from .forms import UserRegistrationForm, UserAddressForm
 from .models import CheckingBankAccount, SavingsBankAccount
+from .models import CheckingBankAccount
+from .forms import UserUpdateForm 
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -84,7 +86,20 @@ class LogoutView(RedirectView):
         return super().get_redirect_url(*args, **kwargs)
 
 
-# ======================================== Accounts Views ======================================
+class UserUpdateView(LoginRequiredMixin, UpdateView):
+    model = User
+    form_class = UserUpdateForm
+    template_name = 'accounts/update_user.html'
+    success_url = reverse_lazy('user_home')  # Redirect to the user profile or home page after update
+
+    def get_object(self, queryset=None):
+        return self.request.user  # Return the current user, do not fetch from URL
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Your profile has been updated successfully.')
+        return super().form_valid(form)
+
+# ======================================== Checking Accounts Views ======================================
 @method_decorator(login_required, name='dispatch')
 class OpenAccountsView(TemplateView):
     template_name = 'accounts/open_accounts.html'
@@ -118,8 +133,23 @@ class OpenCheckingAccountView(LoginRequiredMixin, View):
             account.save()
             logger.info("Checking account successfully created for user %s", request.user)
             return redirect(reverse_lazy(
-                'accounts:accounts_home'))  # Use redirect instead of HttpResponseRedirect for simplicity
+                'accounts:accounts_home'))  
+    
+class DeleteCheckingAccountView(LoginRequiredMixin, DeleteView):
+    model = CheckingBankAccount
+    template_name = 'accounts/delete_checking_account.html'
+    success_url = reverse_lazy('accounts:accounts_home')
 
+    def get_queryset(self):
+       
+        return self.model.objects.filter(user=self.request.user)
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, "Checking account deleted successfully.")
+        return super().delete(request, *args, **kwargs)
+
+
+# ========================================== SAVINGS ACCOUNT ==========================================
 
 class OpenSavingsAccountView(LoginRequiredMixin, View):
     template_name = 'accounts/open_savings_account.html'
@@ -144,7 +174,20 @@ class OpenSavingsAccountView(LoginRequiredMixin, View):
             account.save()
             return redirect(reverse_lazy('accounts:accounts_home'))
 
+class DeleteSavingsAccountView(LoginRequiredMixin, DeleteView):
+    model = SavingsBankAccount
+    template_name = 'accounts/delete_savings_account.html'
+    success_url = reverse_lazy('accounts:accounts_home')  # Redirect here after deletion
 
+    def get_queryset(self):
+        """ Ensure that a user can only delete their own savings account. """
+        return self.model.objects.filter(user=self.request.user)
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, "Savings account deleted successfully.")
+        return super().delete(request, *args, **kwargs)
+    
+# ============================= Account Details Home Page =============================================
 class AccountDetailsView(LoginRequiredMixin, TemplateView):
     template_name = 'accounts/accounts_home.html'
 

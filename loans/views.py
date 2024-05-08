@@ -1,4 +1,4 @@
-import json
+import json, logging
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -15,6 +15,8 @@ from django.views.generic.edit import FormView
 from .forms import LoanForm, HomeLoanForm, EducationLoanForm
 from .models import Insurance, Loan, University
 
+
+logger = logging.getLogger(__name__)
 
 # ========================= Home Page for loans View ========================================
 def loan_application(request):
@@ -82,7 +84,7 @@ class PersonalLoanCreateView(LoginRequiredMixin, CreateView):
         existing_home_loans = Loan.objects.filter(user=self.request.user, loan_type=loan_type).exists()
         if existing_home_loans:
             # If an existing home loan is found, prevent the new loan application
-            messages.error(self.request, "You've already taken a Personal Loan and are not eligible for another home loan.")
+            messages.error(self.request, "You've already taken a Personal Loan and are not eligible for another personal loan.")
             return redirect('loans:apply_personal_loan')
         
         try:
@@ -215,13 +217,30 @@ class EducationLoanCreateView(LoginRequiredMixin, FormView):
             education_loan_form = EducationLoanForm(user=request.user)
             return render(request, self.template_name, {'form': education_loan_form})
 
+    # def form_valid(self, form):
+    #     ''' Called when valid form data has been POSTed. Also redirect to success_url '''
+    #     loan_type = 'education'
+    #     existing_education_loans = Loan.objects.filter(user=self.request.user, loan_type=loan_type).exists()
+    #     if existing_education_loans:
+    #         # If an existing education loan is found, prevent the new loan application
+    #         messages.error(self.request, "You've already taken an Education Loan and are not eligible for another education loan.")
+    #         return redirect('loans:apply_education_loan')
+        
+    #     try:
+    #         with transaction.atomic():
+    #             form.instance.user = self.request.user
+    #             form.save() 
+    #             messages.success(self.request, f"{loan_type.capitalize()} loan application submitted successfully!")
+    #             return HttpResponseRedirect(self.get_success_url())
+    #     except IntegrityError:
+    #         messages.error(self.request, f"An unexpected error occurred while processing your {loan_type} loan application.")
+    #         return redirect('loans:apply_education_loan' )  
+    
     def form_valid(self, form):
-        ''' Called when valid form data has been POSTed. Also redirect to success_url '''
         loan_type = 'education'
         existing_education_loans = Loan.objects.filter(user=self.request.user, loan_type=loan_type).exists()
         if existing_education_loans:
-            # If an existing home loan is found, prevent the new loan application
-            messages.error(self.request, "You've already taken a Home Loan and are not eligible for another home loan.")
+            messages.error(self.request, "You've already taken an Education Loan and are not eligible for another education loan.")
             return redirect('loans:apply_education_loan')
         
         try:
@@ -230,9 +249,16 @@ class EducationLoanCreateView(LoginRequiredMixin, FormView):
                 form.save() 
                 messages.success(self.request, f"{loan_type.capitalize()} loan application submitted successfully!")
                 return HttpResponseRedirect(self.get_success_url())
-        except IntegrityError:
+        except IntegrityError as e:
+            # Log the error to understand what happened
+            logger.error(f"IntegrityError during saving education loan: {e}")
             messages.error(self.request, f"An unexpected error occurred while processing your {loan_type} loan application.")
-            return redirect('loans:apply_education_loan', )  
+            return redirect('loans:apply_education_loan')
+        except Exception as e:
+            # Catch other unexpected exceptions
+            logger.error(f"Unexpected error when processing education loan: {e}")
+            messages.error(self.request, f"An unexpected error occurred while processing your {loan_type} loan application. May be student email already exists.")
+            return redirect('loans:apply_education_loan')
         
     def form_invalid(self, form):
         ''' Adding an error message '''

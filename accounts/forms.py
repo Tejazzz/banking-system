@@ -81,3 +81,15 @@ class UserRegistrationForm(UserCreationForm):
             user.save()
             
         return user
+
+
+class UserUpdateForm(forms.ModelForm):
+    birth_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}), validators=[validate_age])
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'birth_date']  # Customize fields based on your User model
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'})
+        }

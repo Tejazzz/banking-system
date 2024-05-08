@@ -5,12 +5,17 @@ from django.forms.widgets import NumberInput
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
+from django.core.validators import MinValueValidator
 
 import logging
 
 from .constants import US_STATES
 from .models import Address, Loan, HomeLoan, EducationLoan, StudentInfo, University, Insurance
 
+
+def validate_positive_amount(value):
+    if value <= 0:
+        raise ValidationError("The amount must be greater than zero.")
 
 class LoanForm(forms.ModelForm):
     class Meta:
@@ -20,6 +25,7 @@ class LoanForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)  # Extract user from kwargs and remove it
         super(LoanForm, self).__init__(*args, **kwargs)
+        self.fields['amount'].validators.append(validate_positive_amount)
 
     def save(self, user=None, commit=True):
         loan = super(LoanForm, self).save(commit=False)
