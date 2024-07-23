@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
 from decimal import Decimal
+from django.db import connection
 
 from .constants import ACCOUNT_TYPES
 from .managers import UserManager
@@ -53,6 +54,12 @@ class BankAccount(models.Model):
     )
     account_type = models.CharField(choices=ACCOUNT_TYPES, default='CHECKING')
 
+    @staticmethod
+    def get_positive_balance_accounts():
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT * FROM accounts_bankaccount WHERE balance > 0;")
+            rows = cursor.fetchall()
+        return rows
 
 class CheckingBankAccount(BankAccount):
     service_charge = models.DecimalField(

@@ -62,6 +62,19 @@ def loan_application(request):
 #         kwargs['user'] = self.request.user
 #         return kwargs
 
+from django.db import connection
+
+def check_existing_loans(user_id, loan_type):
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT 1 FROM appname_loan
+                WHERE id = %s AND loan_type = %s
+            )
+        """, [user_id, loan_type])
+        exists = cursor.fetchone()[0]
+    return exists
+
 class PersonalLoanCreateView(LoginRequiredMixin, CreateView):
     model = Loan
     form_class = LoanForm

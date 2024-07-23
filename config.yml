@@ -1,9 +1,9 @@
 # ---------- postgres credentials ----------------- 
 database:
-  NAME: 'aty_safe'
-  USER: 'aty'
-  PASSWORD: 'aty1234'
-  HOST: 'postgres'
+  NAME: 'dbms_db'
+  USER: 'postgres'
+  PASSWORD: 'postgres'
+  HOST: 'localhost'
   PORT: 5432    
 
 admin:

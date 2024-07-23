@@ -12,10 +12,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from django.db import connection
+
+
 @shared_task(name="update_account_balances")
 def update_account_balances():
     logger.info("Running update_account_balances task")
     
+    # accounts = BankAccount.objects.filter(balance__gt=0)
     accounts = BankAccount.objects.filter(balance__gt=0)
     
     created_transactions = []

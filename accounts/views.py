@@ -110,22 +110,12 @@ class OpenAccountsView(TemplateView):
         # You can add more context variables if needed
         return context
 
-def get_user_checking_account(user_id):
-    with connection.cursor() as cursor:
-        cursor.execute("""
-            SELECT * FROM accounts_checkingbankaccount
-            WHERE id = %s AND account_type = 'CHECKING'
-            LIMIT 1
-        """, [user_id])
-        row = cursor.fetchone()
-    return row
 
 class OpenCheckingAccountView(LoginRequiredMixin, View):
     template_name = 'accounts/open_checking_accounts.html'
 
     def get(self, request, *args, **kwargs):
-        existing_account = CheckingBankAccount.objects.filter(user=request.user, account_type='CHECKING').first()
-        # existing_account = get_user_checking_account(request.user.id)
+        existing_account = SavingsBankAccount.objects.filter(user=request.user, account_type='SAVINGS').first()
 
         if existing_account:
             # If an account exists, inform the user and redirect
