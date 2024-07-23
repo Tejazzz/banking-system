@@ -9,7 +9,6 @@ This project is a comprehensive banking system built using the Django framework.
 - **Account Management**: Create, update, and manage user accounts with ease.
 - **Loan Processing**: Apply for loans, process loan applications, and manage loan repayments.
 - **Transaction Handling**: Record and track all transactions within the system.
-- **Data Management**: Use JSON files for data dumps and university lists.
 - **Docker Support**: Easily deploy the application using Docker and Docker Compose.
 
 ## Project Structure
@@ -100,7 +99,3 @@ Contributions are welcome! Please follow these steps:
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Contact
-
-For any inquiries, please contact [Your Name](mailto:your.email@example.com).
